@@ -1,0 +1,113 @@
+================================================================================
+HỆ THỐNG QUẢN LÝ SẢN PHẨM MỸ PHẨM
+Phiên bản: 1.0.0
+Ngày tạo: October 2024
+================================================================================
+
+MỤC ĐÍCH:
+---------
+- Hệ thống quản lý sản phẩm mỹ phẩm phía Admin
+- Phục vụ mục đích học tập và kiểm thử
+- Tuân thủ 100% yêu cầu trong file readme.txt
+
+CÔNG NGHỆ:
+----------
+- Backend: PHP 8.x (thuần, không framework)
+- Database: MySQL/MariaDB
+- Frontend: HTML5, CSS3, JavaScript (vanilla)
+- Architecture: MVC Pattern
+- Server: Apache (XAMPP)
+
+CẤU TRÚC DỰ ÁN:
+----------------
+quanlysanpham/
+├── assets/              # CSS, JS
+├── config/              # Cấu hình, kết nối DB
+├── controllers/         # Controllers (MVC)
+├── database/            # SQL scripts
+├── models/              # Models (MVC)
+├── uploads/             # Upload files
+├── views/               # Views (MVC)
+├── index.php            # Entry point
+├── README.md            # Tài liệu chính
+└── HUONG_DAN_CAI_DAT.md # Hướng dẫn cài đặt
+
+TÍNH NĂNG CHÍNH:
+-----------------
+✅ Dashboard với thống kê và cảnh báo
+✅ Quản lý sản phẩm (CRUD đầy đủ)
+✅ Upload và quản lý ảnh (max 3 ảnh/sản phẩm)
+✅ Tìm kiếm và lọc sản phẩm
+✅ Phân trang tự động
+✅ Validate dữ liệu chặt chẽ
+✅ Bảo mật tốt (Prepared statements, sanitize input)
+✅ Giao diện responsive, hiện đại
+
+CƠ SỞ DỮ LIỆU:
+---------------
+- Database: quanlysanpham
+- Tables: categories, products, product_history
+- Triggers: Tự động cập nhật trạng thái
+- Views: Hỗ trợ truy vấn nhanh
+- Stored Procedures: Thống kê và báo cáo
+
+RÀNG BUỘC DỮ LIỆU:
+-------------------
+✅ Mã sản phẩm: SPXX...X (duy nhất)
+✅ Tên sản phẩm: 5-150 ký tự
+✅ Giá: 1.000 - 1.000.000.000 VNĐ
+✅ Tồn kho: >= 0
+✅ HSD: Sau NSX >= 30 ngày
+✅ Ảnh: JPG/PNG, max 5MB, max 3 ảnh
+✅ Mô tả: Max 500 ký tự
+
+BẢO MẬT:
+--------
+✅ PDO Prepared Statements (chống SQL Injection)
+✅ Sanitize input (chống XSS)
+✅ Validate file upload
+✅ Session management
+✅ .htaccess bảo vệ files nhạy cảm
+
+HƯỚNG DẪN CÀI ĐẶT:
+-------------------
+1. Cài đặt XAMPP, khởi động Apache + MySQL
+2. Copy source vào C:\xampp\htdocs\quanlysanpham
+3. Import file database/quanlysanpham.sql vào phpMyAdmin
+4. Truy cập: http://localhost/quanlysanpham
+
+Chi tiết xem file: HUONG_DAN_CAI_DAT.md
+
+DỮ LIỆU MẪU:
+-------------
+- 5 danh mục sản phẩm
+- 10 sản phẩm mẫu từ các thương hiệu nổi tiếng
+
+KIỂM THỬ:
+---------
+✅ Thêm/sửa/xóa sản phẩm
+✅ Validate dữ liệu
+✅ Upload ảnh
+✅ Tìm kiếm/lọc
+✅ Triggers tự động
+✅ Responsive design
+
+CÓ THỂ MỞ RỘNG:
+----------------
+- Thêm authentication/authorization
+- Thêm quản lý đơn hàng
+- Thêm chức năng bán hàng (frontend)
+- Export/Import Excel
+- Báo cáo thống kê chi tiết
+- API RESTful
+- Multi-language
+
+LIÊN HỆ HỖ TRỢ:
+----------------
+- Đọc file HUONG_DAN_CAI_DAT.md
+- Xem phần "Xử lý lỗi thường gặp"
+- Kiểm tra error logs
+
+================================================================================
+Developed with ❤️ for learning and testing purposes
+================================================================================

@@ -1,0 +1,46 @@
+# Gitignore cho dự án Quản lý Sản phẩm Mỹ phẩm
+
+# Uploaded files
+uploads/products/*
+!uploads/products/.gitkeep
+
+# Config files with sensitive data (nếu có password)
+# config/database.php
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+error_log
+access_log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# PHP
+vendor/
+composer.lock
+.phpunit.result.cache
+
+# Backup files
+*.bak
+*.backup
+*.sql.gz
+*.sql.zip
+
+# Session files
+sessions/*
+!sessions/.gitkeep
