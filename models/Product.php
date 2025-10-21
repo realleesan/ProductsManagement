@@ -83,6 +83,22 @@ class Product {
     }
     
     /**
+     * Lấy danh sách sản phẩm đang hoạt động (status = 'Active')
+     */
+    public function getActiveProducts() {
+        $query = "SELECT p.*, c.category_name 
+                 FROM " . $this->table_name . " p
+                 LEFT JOIN categories c ON p.category_id = c.category_id
+                 WHERE p.status = 'Active' 
+                 AND (p.stock_quantity > 0)
+                 ORDER BY p.product_name ASC";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+    
+    /**
      * Đếm tổng số sản phẩm (cho phân trang)
      */
     public function countAll($search = '', $category_id = '', $status = '') {
@@ -507,5 +523,87 @@ class Product {
         $stmt->bindParam(':threshold', $threshold, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt;
+    }
+    
+    /**
+     * Cập nhật số lượng tồn kho sản phẩm
+     * @param int $product_id ID sản phẩm
+     * @param int $quantity_change Số lượng thay đổi (dương để tăng, âm để giảm)
+     * @param string $note Ghi chú lý do thay đổi
+     * @return bool Kết quả cập nhật
+     */
+    public function updateStock($product_id, $quantity_change, $note = '') {
+        // Bắt đầu transaction
+        $this->conn->beginTransaction();
+        
+        try {
+            // Lấy thông tin sản phẩm hiện tại
+            $query = "SELECT stock_quantity, status FROM " . $this->table_name . " WHERE product_id = :id FOR UPDATE";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $product_id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            if ($stmt->rowCount() === 0) {
+                throw new Exception("Không tìm thấy sản phẩm");
+            }
+            
+            $product = $stmt->fetch(PDO::FETCH_ASSOC);
+            $new_quantity = $product['stock_quantity'] + $quantity_change;
+            
+            // Kiểm tra nếu số lượng mới âm
+            if ($new_quantity < 0) {
+                throw new Exception("Số lượng tồn kho không đủ");
+            }
+            
+            // Cập nhật số lượng tồn kho
+            $update_query = "UPDATE " . $this->table_name . " 
+                           SET stock_quantity = :new_quantity,
+                               updated_at = NOW()
+                           WHERE product_id = :id";
+            
+            $update_stmt = $this->conn->prepare($update_query);
+            $update_stmt->bindParam(':new_quantity', $new_quantity, PDO::PARAM_INT);
+            $update_stmt->bindParam(':id', $product_id, PDO::PARAM_INT);
+            
+            if (!$update_stmt->execute()) {
+                throw new Exception("Lỗi khi cập nhật số lượng tồn kho");
+            }
+            
+            // Ghi log thay đổi tồn kho
+            $log_query = "INSERT INTO inventory_logs 
+                         (product_id, quantity_change, new_quantity, note, created_at) 
+                         VALUES 
+                         (:product_id, :quantity_change, :new_quantity, :note, NOW())";
+            
+            $log_stmt = $this->conn->prepare($log_query);
+            $log_stmt->bindParam(':product_id', $product_id, PDO::PARAM_INT);
+            $log_stmt->bindParam(':quantity_change', $quantity_change, PDO::PARAM_INT);
+            $log_stmt->bindParam(':new_quantity', $new_quantity, PDO::PARAM_INT);
+            $log_stmt->bindParam(':note', $note);
+            $log_stmt->execute();
+            
+            // Cập nhật trạng thái sản phẩm nếu cần
+            $new_status = $product['status'];
+            if ($new_quantity <= 0 && $product['status'] !== 'Out of stock') {
+                $new_status = 'Out of stock';
+            } elseif ($new_quantity > 0 && $product['status'] === 'Out of stock') {
+                $new_status = 'Active';
+            }
+            
+            if ($new_status !== $product['status']) {
+                $status_query = "UPDATE " . $this->table_name . " SET status = :status WHERE product_id = :id";
+                $status_stmt = $this->conn->prepare($status_query);
+                $status_stmt->bindParam(':status', $new_status);
+                $status_stmt->bindParam(':id', $product_id, PDO::PARAM_INT);
+                $status_stmt->execute();
+            }
+            
+            $this->conn->commit();
+            return true;
+            
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
     }
 }

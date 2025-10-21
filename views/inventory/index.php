@@ -1,133 +1,160 @@
 <?php 
-$page_title = $data['title'];
+$page_title = 'Quản lý kho hàng';
 $active_page = 'inventory';
 require_once __DIR__ . '/../layouts/header.php'; 
 ?>
 
 <div class="page-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <h1><i class="fas fa-warehouse"></i> <?php echo $data['title']; ?></h1>
-        <div class="btn-group" role="group">
-            <a href="/inventory?type=import" class="btn btn-<?php echo $data['type'] === 'import' ? 'primary' : 'outline-secondary'; ?>">
-                <i class="fas fa-arrow-down"></i> Nhập kho
-            </a>
-            <a href="/inventory?type=export" class="btn btn-<?php echo $data['type'] === 'export' ? 'primary' : 'outline-secondary'; ?>">
-                <i class="fas fa-arrow-up"></i> Xuất kho
-            </a>
-            <a href="/inventory/create?type=<?php echo $data['type']; ?>" class="btn btn-success">
-                <i class="fas fa-plus"></i> Thêm mới
-            </a>
-        </div>
-    </div>
-    
-    <!-- Thống kê nhanh -->
-    <div class="row mt-3">
-        <div class="col-md-4">
-            <div class="card bg-primary text-white">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0">Tổng <?php echo $data['type'] === 'import' ? 'nhập' : 'xuất'; ?> tháng này</h6>
-                            <h3 class="mb-0"><?php 
-                                $currentMonth = date('Y-m');
-                                $total = 0;
-                                foreach ($data['transactions'] as $trans) {
-                                    $transDate = $data['type'] === 'import' ? $trans['import_date'] : $trans['export_date'];
-                                    if (strpos($transDate, $currentMonth) === 0) {
-                                        $total += $trans['quantity'];
-                                    }
-                                }
-                                echo number_format($total);
-                            ?></h3>
-                        </div>
-                        <i class="fas fa-calendar-alt fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Có thể thêm các thẻ thống kê khác tại đây -->
+    <h1><i class="fas fa-warehouse"></i> Quản lý kho hàng</h1>
+    <div>
+        <a href="?action=importForm" class="btn btn-success">
+            <i class="fas fa-plus-circle"></i> Nhập kho
+        </a>
+        <a href="?action=exportForm" class="btn btn-warning">
+            <i class="fas fa-minus-circle"></i> Xuất kho
+        </a>
     </div>
 </div>
 
-<!-- Bảng danh sách phiếu nhập/xuất -->
-<div class="card mt-4">
+<!-- Thống kê nhanh -->
+<div class="quick-stats">
+    <div class="stat-item">
+        <strong><?php echo number_format($statistics['total_products']); ?></strong>
+        <span>Tổng SP</span>
+    </div>
+    <div class="stat-item stat-success">
+        <strong><?php echo number_format($statistics['total_stock']); ?></strong>
+        <span>Tồn kho</span>
+    </div>
+    <div class="stat-item stat-warning">
+        <strong><?php echo number_format($statistics['low_stock']); ?></strong>
+        <span>Sắp hết</span>
+    </div>
+    <div class="stat-item stat-danger">
+        <strong><?php echo number_format($statistics['out_of_stock']); ?></strong>
+        <span>Hết hàng</span>
+    </div>
+</div>
+
+<!-- Bộ lọc và tìm kiếm -->
+<div class="filter-section">
+    <form method="GET" action="" class="filter-form">
+        <input type="hidden" name="action" value="index">
+        
+        <div class="filter-group">
+            <select name="product_id" class="form-control">
+                <option value="">Tất cả sản phẩm</option>
+                <?php foreach ($products as $p): ?>
+                    <option value="<?php echo $p['product_id']; ?>" <?php echo (isset($_GET['product_id']) && $_GET['product_id'] == $p['product_id']) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($p['product_code'] . ' - ' . $p['product_name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+                        
+        <div class="filter-group">
+            <select name="type" class="form-control">
+                <option value="">Tất cả loại</option>
+                                <option value="Import" <?php echo (isset($_GET['type']) && $_GET['type'] === 'Import') ? 'selected' : ''; ?>>Nhập kho</option>
+                                <option value="Export" <?php echo (isset($_GET['type']) && $_GET['type'] === 'Export') ? 'selected' : ''; ?>>Xuất kho</option>
+                            </select>
+                        </div>
+                        
+        <div class="filter-group">
+            <input type="date" name="start_date" class="form-control" 
+                   value="<?php echo $_GET['start_date'] ?? ''; ?>" 
+                   placeholder="Từ ngày">
+        </div>
+        
+        <div class="filter-group">
+            <input type="date" name="end_date" class="form-control" 
+                   value="<?php echo $_GET['end_date'] ?? ''; ?>"
+                   placeholder="Đến ngày">
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search"></i> Tìm kiếm
+        </button>
+        
+        <a href="?action=index" class="btn btn-secondary">
+            <i class="fas fa-redo"></i> Làm mới
+        </a>
+    </form>
+</div>
+
+<!-- Bảng lịch sử giao dịch -->
+<div class="card">
     <div class="card-body">
-        <?php if (!empty($_SESSION['success'])): ?>
-            <div class="alert alert-success"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></div>
+        <?php if (count($transactions) > 0): ?>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Mã giao dịch</th>
+                        <th>Loại</th>
+                        <th>Sản phẩm</th>
+                        <th class="text-end">Số lượng</th>
+                        <th class="text-end">Tồn kho</th>
+                        <th>Người thực hiện</th>
+                        <th>Thời gian</th>
+                        <th class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($transactions as $transaction): ?>
+                    <tr>
+                        <td><?php echo $transaction['transaction_code']; ?></td>
+                        <td>
+                            <?php if ($transaction['type'] === 'Import'): ?>
+                                <span class="badge bg-success">Nhập kho</span>
+                            <?php else: ?>
+                                <span class="badge bg-warning text-dark">Xuất kho</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php echo htmlspecialchars($transaction['product_code'] . ' - ' . $transaction['product_name']); ?>
+                        </td>
+                        <td class="text-end"><?php echo number_format($transaction['quantity']); ?></td>
+                        <td class="text-end"><?php echo number_format($transaction['current_stock']); ?></td>
+                        <td><?php echo htmlspecialchars($transaction['user_name']); ?></td>
+                        <td><?php echo date('d/m/Y H:i', strtotime($transaction['created_at'])); ?></td>
+                        <td class="text-center">
+                            <a href="?action=view&id=<?php echo $transaction['id']; ?>" class="btn btn-sm btn-info" title="Xem chi tiết">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php else: ?>
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle me-2"></i>Không có giao dịch nào được tìm thấy.
+            </div>
         <?php endif; ?>
         
-        <?php if (!empty($data['transactions'])): ?>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Mã phiếu</th>
-                            <th>Ngày</th>
-                            <th>Mã SP</th>
-                            <th>Tên sản phẩm</th>
-                            <th class="text-end">Số lượng</th>
-                            <th>Người thực hiện</th>
-                            <th>Trạng thái</th>
-                            <th class="text-center">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($data['transactions'] as $trans): 
-                            $transDate = $data['type'] === 'import' ? $trans['import_date'] : $trans['export_date'];
-                            $formattedDate = date('d/m/Y', strtotime($transDate));
-                            $statusClass = $trans['status'] === 'Completed' ? 'success' : 
-                                         ($trans['status'] === 'Pending' ? 'warning' : 'danger');
-                        ?>
-                            <tr>
-                                <td><?php echo $data['type'] === 'import' ? $trans['import_code'] : $trans['export_code']; ?></td>
-                                <td><?php echo $formattedDate; ?></td>
-                                <td><?php echo $trans['product_code']; ?></td>
-                                <td><?php echo $trans['product_name']; ?></td>
-                                <td class="text-end"><?php echo number_format($trans['quantity']); ?></td>
-                                <td><?php echo $data['type'] === 'import' ? $trans['import_by'] : $trans['export_by']; ?></td>
-                                <td><span class="badge bg-<?php echo $statusClass; ?>"><?php echo $trans['status']; ?></span></td>
-                                <td class="text-center">
-                                    <a href="/inventory/<?php echo $trans[$data['type'] . '_id']; ?>?type=<?php echo $data['type']; ?>" 
-                                       class="btn btn-sm btn-info" 
-                                       title="Xem chi tiết">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <?php if ($trans['status'] === 'Pending'): ?>
-                                        <a href="#" class="btn btn-sm btn-success" title="Duyệt">
-                                            <i class="fas fa-check"></i>
-                                        </a>
-                                        <a href="#" class="btn btn-sm btn-danger" title="Từ chối">
-                                            <i class="fas fa-times"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Phân trang (nếu cần) -->
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Trước</a>
-                    </li>
-                    <li class="page-item active" aria-current="page">
-                        <a class="page-link" href="#">1</a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="#">Tiếp</a>
-                    </li>
-                </ul>
-            </nav>
-            
-        <?php else: ?>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> Chưa có dữ liệu phiếu <?php echo $data['type'] === 'import' ? 'nhập' : 'xuất'; ?> kho nào.
+        <!-- Phân trang -->
+        <?php if ($total_pages > 1): ?>
+            <div class="pagination">
+                <?php if ($page > 1): ?>
+                <a href="?action=index&page=<?php echo ($page - 1); ?><?php echo isset($_GET['product_id']) ? '&product_id=' . $_GET['product_id'] : ''; ?><?php echo isset($_GET['type']) ? '&type=' . $_GET['type'] : ''; ?><?php echo isset($_GET['start_date']) ? '&start_date=' . $_GET['start_date'] : ''; ?><?php echo isset($_GET['end_date']) ? '&end_date=' . $_GET['end_date'] : ''; ?>" 
+                   class="btn btn-sm btn-secondary">
+                    <i class="fas fa-chevron-left"></i> Trước
+                </a>
+                <?php endif; ?>
+                
+                <span class="page-info">Trang <?php echo $page; ?>/<?php echo $total_pages; ?></span>
+                
+                <?php if ($page < $total_pages): ?>
+                <a href="?action=index&page=<?php echo ($page + 1); ?><?php echo isset($_GET['product_id']) ? '&product_id=' . $_GET['product_id'] : ''; ?><?php echo isset($_GET['type']) ? '&type=' . $_GET['type'] : ''; ?><?php echo isset($_GET['start_date']) ? '&start_date=' . $_GET['start_date'] : ''; ?><?php echo isset($_GET['end_date']) ? '&end_date=' . $_GET['end_date'] : ''; ?>" 
+                   class="btn btn-sm btn-secondary">
+                    Tiếp <i class="fas fa-chevron-right"></i>
+                </a>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../layouts/footer.php'; ?>
+<?php include_once __DIR__ . '/../layouts/footer.php'; ?>

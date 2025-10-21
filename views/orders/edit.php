@@ -1,310 +1,471 @@
-<?php include '../../views/layouts/header.php'; ?>
+<?php include '../layouts/header.php'; ?>
 
-<div class="container mt-4">
-    <h2>Chỉnh sửa đơn hàng #<?php echo $order['order_code']; ?></h2>
-    
-    <form action="/quanlysanpham/orders/update/<?php echo $order['order_id']; ?>" method="POST" id="orderForm">
-        <input type="hidden" name="_method" value="PUT">
-        
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>Thông tin khách hàng</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="customer_id" class="form-label">Khách hàng</label>
-                            <select class="form-select" id="customer_id" name="customer_id" required>
-                                <option value="">Chọn khách hàng</option>
-                                <?php foreach ($customers as $customer): ?>
-                                <option value="<?php echo $customer['customer_id']; ?>" 
-                                    <?php echo ($customer['customer_id'] == $order['customer_id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($customer['customer_name']); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="phone" class="form-label">Số điện thoại</label>
-                            <input type="text" class="form-control" id="phone" name="phone" 
-                                   value="<?php echo htmlspecialchars($order['phone'] ?? ''); ?>" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" 
-                                   value="<?php echo htmlspecialchars($order['email'] ?? ''); ?>" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label for="address" class="form-label">Địa chỉ giao hàng</label>
-                            <textarea class="form-control" id="address" name="address" rows="2" required><?php 
-                                echo htmlspecialchars($order['shipping_address'] ?? ''); 
-                            ?></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="status" class="form-label">Trạng thái đơn hàng</label>
-                            <select class="form-select" id="status" name="status" required>
-                                <option value="pending" <?php echo ($order['status'] == 'pending') ? 'selected' : ''; ?>>Chờ xử lý</option>
-                                <option value="processing" <?php echo ($order['status'] == 'processing') ? 'selected' : ''; ?>>Đang xử lý</option>
-                                <option value="shipped" <?php echo ($order['status'] == 'shipped') ? 'selected' : ''; ?>>Đang giao hàng</option>
-                                <option value="delivered" <?php echo ($order['status'] == 'delivered') ? 'selected' : ''; ?>>Đã giao hàng</option>
-                                <option value="cancelled" <?php echo ($order['status'] == 'cancelled') ? 'selected' : ''; ?>>Đã hủy</option>
-                                <option value="refunded" <?php echo ($order['status'] == 'refunded') ? 'selected' : ''; ?>>Đã hoàn tiền</option>
-                            </select>
-                        </div>
-                    </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Chỉnh sửa đơn hàng #<?= htmlspecialchars($order['order_code']) ?></h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/quanlysanpham">Trang chủ</a></li>
+                            <li class="breadcrumb-item"><a href="/quanlysanpham/orders">Đơn hàng</a></li>
+                            <li class="breadcrumb-item"><a href="/quanlysanpham/orders/view/<?= $order['order_id'] ?>">#<?= htmlspecialchars($order['order_code']) ?></a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Chỉnh sửa</li>
+                        </ol>
+                    </nav>
                 </div>
-                
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>Thông tin thanh toán</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="payment_method" class="form-label">Phương thức thanh toán</label>
-                            <select class="form-select" id="payment_method" name="payment_method" required>
-                                <option value="cod" <?php echo ($order['payment_method'] == 'cod') ? 'selected' : ''; ?>>Thanh toán khi nhận hàng (COD)</option>
-                                <option value="bank_transfer" <?php echo ($order['payment_method'] == 'bank_transfer') ? 'selected' : ''; ?>>Chuyển khoản ngân hàng</option>
-                                <option value="momo" <?php echo ($order['payment_method'] == 'momo') ? 'selected' : ''; ?>>Ví điện tử MoMo</option>
-                                <option value="vnpay" <?php echo ($order['payment_method'] == 'vnpay') ? 'selected' : ''; ?>>VNPay</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="payment_status" class="form-label">Trạng thái thanh toán</label>
-                            <select class="form-select" id="payment_status" name="payment_status" required>
-                                <option value="pending" <?php echo ($order['payment_status'] == 'pending') ? 'selected' : ''; ?>>Chưa thanh toán</option>
-                                <option value="partial" <?php echo ($order['payment_status'] == 'partial') ? 'selected' : ''; ?>>Thanh toán một phần</option>
-                                <option value="paid" <?php echo ($order['payment_status'] == 'paid') ? 'selected' : ''; ?>>Đã thanh toán</option>
-                                <option value="refunded" <?php echo ($order['payment_status'] == 'refunded') ? 'selected' : ''; ?>>Đã hoàn tiền</option>
-                                <option value="cancelled" <?php echo ($order['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Đã hủy</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="paid_amount" class="form-label">Số tiền đã thanh toán</label>
-                            <input type="number" class="form-control" id="paid_amount" name="paid_amount" 
-                                   value="<?php echo $order['paid_amount'] ?? 0; ?>" min="0">
-                        </div>
-                    </div>
+                <div>
+                    <a href="/quanlysanpham/orders/view/<?= $order['order_id'] ?>" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-times me-1"></i> Hủy
+                    </a>
+                    <button type="submit" form="orderForm" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Lưu thay đổi
+                    </button>
                 </div>
             </div>
             
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5>Chi tiết đơn hàng</h5>
-                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                            <i class="fas fa-plus"></i> Thêm sản phẩm
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Sản phẩm</th>
-                                        <th>Đơn giá</th>
-                                        <th>Số lượng</th>
-                                        <th>Thành tiền</th>
-                                        <th>Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="orderItems">
-                                    <?php foreach ($order['items'] as $item): ?>
-                                    <tr data-product-id="<?php echo $item['product_id']; ?>">
-                                        <td>
-                                            <input type="hidden" name="order_item_id[]" value="<?php echo $item['order_item_id']; ?>">
-                                            <input type="hidden" name="product_id[]" value="<?php echo $item['product_id']; ?>">
-                                            <input type="hidden" name="product_name[]" value="<?php echo htmlspecialchars($item['product_name']); ?>">
-                                            <?php echo htmlspecialchars($item['product_name']); ?>
-                                            <?php if (!empty($item['product_code'])): ?>
-                                                <br><small class="text-muted">Mã: <?php echo htmlspecialchars($item['product_code']); ?></small>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <input type="number" class="form-control form-control-sm price-input" 
-                                                   name="price[]" value="<?php echo $item['price']; ?>" min="0" step="1000" required>
-                                        </td>
-                                        <td>
-                                            <input type="number" class="form-control form-control-sm quantity-input" 
-                                                   name="quantity[]" value="<?php echo $item['quantity']; ?>" min="1" required>
-                                            <input type="hidden" class="original-quantity" 
-                                                   value="<?php echo $item['quantity']; ?>">
-                                        </td>
-                                        <td class="item-total">
-                                            <?php echo number_format($item['price'] * $item['quantity']); ?> đ
-                                        </td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-danger remove-item">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="2" class="text-end fw-bold">Tạm tính:</td>
-                                        <td colspan="3" class="text-end" id="subtotal">
-                                            <?php echo number_format($order['subtotal'] ?? 0); ?> đ
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" class="text-end fw-bold">Phí vận chuyển:</td>
-                                        <td colspan="3" class="text-end">
-                                            <input type="number" class="form-control form-control-sm d-inline-block w-50 text-end" 
-                                                   id="shipping_fee" name="shipping_fee" 
-                                                   value="<?php echo $order['shipping_fee'] ?? 0; ?>" min="0">
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" class="text-end fw-bold">Giảm giá:</td>
-                                        <td colspan="3" class="text-end">
-                                            <input type="number" class="form-control form-control-sm d-inline-block w-50 text-end" 
-                                                   id="discount" name="discount" 
-                                                   value="<?php echo $order['discount'] ?? 0; ?>" min="0">
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" class="text-end fw-bold">Tổng cộng:</td>
-                                        <td colspan="3" class="text-end text-danger fw-bold" id="orderTotal">
-                                            <?php echo number_format($order['total_amount'] ?? 0); ?> đ
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" class="text-end fw-bold">Đã thanh toán:</td>
-                                        <td colspan="3" class="text-end text-success fw-bold" id="paidAmount">
-                                            <?php echo number_format($order['paid_amount'] ?? 0); ?> đ
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" class="text-end fw-bold">Còn lại:</td>
-                                        <td colspan="3" class="text-end text-primary fw-bold" id="remainingAmount">
-                                            <?php 
-                                                $remaining = ($order['total_amount'] ?? 0) - ($order['paid_amount'] ?? 0);
-                                                echo number_format($remaining > 0 ? $remaining : 0); 
-                                            ?> đ
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="notes" class="form-label">Ghi chú đơn hàng</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="2"><?php 
-                                echo htmlspecialchars($order['notes'] ?? ''); 
-                            ?></textarea>
-                        </div>
-                        
-                        <div class="d-flex justify-content-between">
-                            <a href="/quanlysanpham/orders" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left"></i> Quay lại
-                            </a>
-                            <div>
-                                <button type="button" class="btn btn-warning me-2" id="saveDraft">
-                                    <i class="fas fa-save"></i> Lưu nháp
-                                </button>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-check"></i> Cập nhật đơn hàng
+            <?php include '../partials/alert.php'; ?>
+            
+            <form id="orderForm" method="post" action="/quanlysanpham/orders/update/<?= $order['order_id'] ?>">
+                <input type="hidden" name="_method" value="PUT">
+                
+                <div class="row">
+                    <div class="col-lg-8">
+                        <!-- Thông tin sản phẩm -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">Sản phẩm</h5>
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                                    <i class="fas fa-plus me-1"></i> Thêm sản phẩm
                                 </button>
                             </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th width="50">STT</th>
+                                                <th>Sản phẩm</th>
+                                                <th class="text-end">Đơn giá</th>
+                                                <th class="text-center" width="150">Số lượng</th>
+                                                <th class="text-end">Thành tiền</th>
+                                                <th width="50"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="orderItems">
+                                            <!-- Sản phẩm sẽ được thêm vào đây bằng JavaScript -->
+                                            <?php if (empty($order['order_items'])): ?>
+                                                <tr id="emptyCart">
+                                                    <td colspan="6" class="text-center py-4">
+                                                        <div class="text-muted">Chưa có sản phẩm nào</div>
+                                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                                                            <i class="fas fa-plus me-1"></i> Thêm sản phẩm
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            <?php endif; ?>
+                                        </tbody>
+                                        <tfoot id="orderSummary">
+                                            <tr>
+                                                <td colspan="3" class="text-end"><strong>Tạm tính:</strong></td>
+                                                <td class="text-center" id="subtotalItems">0</td>
+                                                <td class="text-end" id="subtotalAmount">0 ₫</td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="4" class="text-end">
+                                                    <div class="input-group input-group-sm justify-content-end">
+                                                        <span class="input-group-text">Giảm giá</span>
+                                                        <input type="number" class="form-control text-end" id="discount" name="discount" value="<?= $order['discount_amount'] ?? 0 ?>" min="0" style="width: 100px;">
+                                                        <span class="input-group-text">₫</span>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end" id="discountAmount"><?= isset($order['discount_amount']) ? number_format($order['discount_amount']) . ' ₫' : '0 ₫' ?></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="4" class="text-end">
+                                                    <div class="input-group input-group-sm justify-content-end">
+                                                        <span class="input-group-text">Phí vận chuyển</span>
+                                                        <input type="number" class="form-control text-end" id="shippingFee" name="shipping_fee" value="<?= $order['shipping_fee'] ?? 0 ?>" min="0" style="width: 100px;">
+                                                        <span class="input-group-text">₫</span>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end" id="shippingFeeAmount"><?= isset($order['shipping_fee']) ? number_format($order['shipping_fee']) . ' ₫' : '0 ₫' ?></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr class="table-active">
+                                                <td colspan="4" class="text-end"><strong>Tổng cộng:</strong></td>
+                                                <td class="text-end fw-bold fs-5" id="totalAmount"><?= isset($order['total_amount']) ? number_format($order['total_amount']) . ' ₫' : '0 ₫' ?></td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                
-                <?php if (!empty($orderHistory)): ?>
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>Lịch sử cập nhật đơn hàng</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="timeline">
-                            <?php foreach ($orderHistory as $history): ?>
-                            <div class="timeline-item">
-                                <div class="timeline-marker"></div>
-                                <div class="timeline-content">
-                                    <div class="d-flex justify-content-between">
-                                        <h6 class="mb-1"><?php echo htmlspecialchars($history['status_label'] ?? ''); ?></h6>
-                                        <small class="text-muted">
-                                            <?php echo date('H:i d/m/Y', strtotime($history['created_at'])); ?>
-                                        </small>
+                        
+                        <!-- Thông tin bổ sung -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0">Thông tin bổ sung</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="note" class="form-label">Ghi chú đơn hàng</label>
+                                    <textarea class="form-control" id="note" name="note" rows="3" placeholder="Ghi chú cho đơn hàng (không bắt buộc)"><?= htmlspecialchars($order['note'] ?? '') ?></textarea>
+                                </div>
+                                
+                                <?php if (!empty($order['cancel_reason'])): ?>
+                                    <div class="alert alert-warning">
+                                        <h6 class="alert-heading">Lý do hủy đơn hàng:</h6>
+                                        <p class="mb-0"><?= nl2br(htmlspecialchars($order['cancel_reason'])) ?></p>
                                     </div>
-                                    <p class="mb-1">
-                                        <?php if (!empty($history['notes'])): ?>
-                                            <small><?php echo nl2br(htmlspecialchars($history['notes'])); ?></small>
-                                        <?php else: ?>
-                                            <small class="text-muted">Không có ghi chú</small>
-                                        <?php endif; ?>
-                                    </p>
-                                    <div class="text-muted small">
-                                        <i class="fas fa-user"></i> 
-                                        <?php echo !empty($history['updated_by_name']) ? 
-                                            htmlspecialchars($history['updated_by_name']) : 'Hệ thống'; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        
+                        <!-- Lịch sử thay đổi -->
+                        <?php if (!empty($order_history)): ?>
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h5 class="card-title mb-0">Lịch sử thay đổi</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="list-group list-group-flush">
+                                        <?php foreach ($order_history as $history): ?>
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <h6 class="mb-1">
+                                                            <?php 
+                                                                $action_text = [
+                                                                    'Created' => 'Tạo đơn hàng',
+                                                                    'Confirmed' => 'Xác nhận đơn hàng',
+                                                                    'Processing' => 'Đang xử lý',
+                                                                    'Shipping' => 'Đang giao hàng',
+                                                                    'Completed' => 'Hoàn tất đơn hàng',
+                                                                    'Cancelled' => 'Hủy đơn hàng',
+                                                                    'Updated' => 'Cập nhật đơn hàng'
+                                                                ][$history['action_type']] ?? $history['action_type'];
+                                                                
+                                                                $action_icon = [
+                                                                    'Created' => 'plus-circle',
+                                                                    'Confirmed' => 'check-circle',
+                                                                    'Processing' => 'cog',
+                                                                    'Shipping' => 'truck',
+                                                                    'Completed' => 'check-double',
+                                                                    'Cancelled' => 'times-circle',
+                                                                    'Updated' => 'edit'
+                                                                ][$history['action_type']] ?? 'info-circle';
+                                                            ?>
+                                                            <i class="fas fa-<?= $action_icon ?> text-primary me-2"></i>
+                                                            <?= $action_text ?>
+                                                        </h6>
+                                                        <?php if (!empty($history['note'])): ?>
+                                                            <p class="mb-1"><?= nl2br(htmlspecialchars($history['note'])) ?></p>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($history['old_status']) && !empty($history['new_status'])): ?>
+                                                            <div class="small text-muted">
+                                                                <span class="badge bg-secondary"><?= $history['old_status'] ?></span>
+                                                                <i class="fas fa-arrow-right mx-2 text-muted"></i>
+                                                                <span class="badge bg-<?= $history['new_status'] === 'Đã hủy' ? 'danger' : 'success' ?>">
+                                                                    <?= $history['new_status'] ?>
+                                                                </span>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <div class="text-muted small">
+                                                            <?= date('H:i d/m/Y', strtotime($history['action_at'])) ?>
+                                                        </div>
+                                                        <div class="text-muted small">
+                                                            <?= htmlspecialchars($history['action_by']) ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
                                     </div>
                                 </div>
                             </div>
-                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <!-- Thông tin khách hàng -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0">Thông tin khách hàng</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="customer_id" class="form-label">Khách hàng <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="customer_id" name="customer_id" required>
+                                        <option value="">-- Chọn khách hàng --</option>
+                                        <?php foreach ($customers as $customer): ?>
+                                            <option value="<?= $customer['customer_id'] ?>" 
+                                                <?= ($customer['customer_id'] == $order['customer_id']) ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($customer['fullname']) ?> 
+                                                (<?= !empty($customer['phone']) ? htmlspecialchars($customer['phone']) : 'Chưa có SĐT' ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="form-text">
+                                        <a href="/quanlysanpham/customers/create" target="_blank">
+                                            <i class="fas fa-plus"></i> Thêm khách hàng mới
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="shipping_address" class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="shipping_address" name="shipping_address" rows="3" required><?= htmlspecialchars($order['shipping_address']) ?></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="shipping_note" class="form-label">Ghi chú giao hàng</label>
+                                    <textarea class="form-control" id="shipping_note" name="shipping_note" rows="2"><?= htmlspecialchars($order['shipping_note'] ?? '') ?></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Trạng thái đơn hàng -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0">Trạng thái đơn hàng</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Trạng thái hiện tại</label>
+                                    <select class="form-select" id="status" name="status" <?= $order['status'] === 'Đã hủy' || $order['status'] === 'Hoàn tất' ? 'disabled' : '' ?>>
+                                        <?php 
+                                            $statuses = [
+                                                'Chờ xác nhận' => 'Chờ xác nhận',
+                                                'Đang xử lý' => 'Đang xử lý',
+                                                'Đang giao' => 'Đang giao',
+                                                'Hoàn tất' => 'Hoàn tất',
+                                                'Đã hủy' => 'Đã hủy'
+                                            ];
+                                            
+                                            foreach ($statuses as $value => $label):
+                                                $selected = ($order['status'] === $value) ? 'selected' : '';
+                                                echo "<option value=\"$value\" $selected>$label</option>";
+                                            endforeach;
+                                        ?>
+                                    </select>
+                                    <?php if ($order['status'] === 'Đã hủy' || $order['status'] === 'Hoàn tất'): ?>
+                                        <input type="hidden" name="status" value="<?= $order['status'] ?>">
+                                        <div class="form-text text-muted">Không thể thay đổi trạng thái đơn hàng đã <?= strtolower($order['status']) ?>.</div>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="mb-3" id="cancelReasonContainer" style="display: <?= $order['status'] === 'Đã hủy' ? 'block' : 'none' ?>">
+                                    <label for="cancel_reason" class="form-label">Lý do hủy đơn hàng</label>
+                                    <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3" <?= $order['status'] === 'Đã hủy' ? '' : 'disabled' ?>><?= htmlspecialchars($order['cancel_reason'] ?? '') ?></textarea>
+                                </div>
+                                
+                                <div class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Đơn hàng được tạo bởi <strong><?= htmlspecialchars($order['created_by']) ?></strong> 
+                                    vào <?= date('H:i d/m/Y', strtotime($order['created_at'])) ?>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Thanh toán -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0">Thanh toán</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Phương thức thanh toán <span class="text-danger">*</span></label>
+                                    <div class="list-group">
+                                        <?php 
+                                            $payment_methods = [
+                                                'cod' => 'Thanh toán khi nhận hàng (COD)',
+                                                'bank' => 'Chuyển khoản ngân hàng',
+                                                'momo' => 'Ví điện tử MoMo',
+                                                'vnpay' => 'VNPAY',
+                                                'zalopay' => 'ZaloPay'
+                                            ];
+                                            
+                                            foreach ($payment_methods as $value => $label):
+                                                $checked = ($order['payment_method'] === $value) ? 'checked' : '';
+                                        ?>
+                                            <label class="list-group-item">
+                                                <input class="form-check-input me-2" type="radio" name="payment_method" value="<?= $value ?>" <?= $checked ?>>
+                                                <?= $label ?>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Trạng thái thanh toán</label>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="is_paid" name="is_paid" <?= $order['payment_status'] === 'paid' ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="is_paid">Đã thanh toán</label>
+                                    </div>
+                                    
+                                    <div id="paymentInfo" class="<?= $order['payment_status'] === 'paid' ? '' : 'd-none' ?>">
+                                        <div class="mb-3">
+                                            <label for="payment_date" class="form-label">Ngày thanh toán</label>
+                                            <input type="datetime-local" class="form-control" id="payment_date" name="payment_date" 
+                                                   value="<?= $order['payment_date'] ? date('Y-m-d\TH:i', strtotime($order['payment_date'])) : date('Y-m-d\TH:i') ?>">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="payment_note" class="form-label">Ghi chú thanh toán</label>
+                                            <input type="text" class="form-control" id="payment_note" name="payment_note" 
+                                                   value="<?= htmlspecialchars($order['payment_note'] ?? '') ?>" 
+                                                   placeholder="Số giao dịch, mã tham chiếu...">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <?php if ($order['payment_status'] === 'paid'): ?>
+                                    <div class="alert alert-success p-2 small mb-0">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Đã thanh toán
+                                        <?php if (!empty($order['payment_date'])): ?>
+                                            vào <?= date('H:i d/m/Y', strtotime($order['payment_date'])) ?>
+                                        <?php endif; ?>
+                                        <?php if (!empty($order['payment_note'])): ?>
+                                            <div class="mt-1">
+                                                <strong>Ghi chú:</strong> <?= htmlspecialchars($order['payment_note']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        
+                        <!-- Hành động -->
+                        <div class="card">
+                            <div class="card-body">
+                                <button type="submit" class="btn btn-primary w-100 mb-2">
+                                    <i class="fas fa-save me-1"></i> Lưu thay đổi
+                                </button>
+                                
+                                <a href="/quanlysanpham/orders/print/<?= $order['order_id'] ?>" target="_blank" class="btn btn-outline-secondary w-100 mb-2">
+                                    <i class="fas fa-print me-1"></i> In hóa đơn
+                                </a>
+                                
+                                <?php if ($order['status'] === 'Chờ xác nhận'): ?>
+                                    <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+                                        <i class="fas fa-times me-1"></i> Hủy đơn hàng
+                                    </button>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
-            </div>
+            </form>
         </div>
-    </form>
+    </div>
 </div>
 
-<!-- Add Product Modal -->
+<!-- Modal chọn sản phẩm -->
 <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Thêm sản phẩm</h5>
+                <h5 class="modal-title">Chọn sản phẩm</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <input type="text" class="form-control" id="searchProduct" placeholder="Tìm kiếm sản phẩm...">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchProduct" placeholder="Tìm kiếm sản phẩm...">
+                    </div>
                 </div>
-                <div class="table-responsive">
+                
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                     <table class="table table-hover">
-                        <thead>
+                        <thead class="sticky-top bg-white" style="top: 0;">
                             <tr>
-                                <th>Tên sản phẩm</th>
-                                <th>Mã sản phẩm</th>
-                                <th>Giá bán</th>
-                                <th>Tồn kho</th>
-                                <th>Số lượng</th>
-                                <th>Thao tác</th>
+                                <th width="50">#</th>
+                                <th>Sản phẩm</th>
+                                <th class="text-end">Tồn kho</th>
+                                <th class="text-end">Giá bán</th>
+                                <th class="text-center" width="150">Số lượng</th>
+                                <th width="50"></th>
                             </tr>
                         </thead>
                         <tbody id="productList">
-                            <?php foreach ($products as $product): 
-                                // Skip products that are already in the order
-                                $inOrder = false;
-                                foreach ($order['items'] as $item) {
+                            <?php foreach ($products as $index => $product): 
+                                $inCart = false;
+                                $cartQuantity = 0;
+                                
+                                foreach ($order['order_items'] as $item) {
                                     if ($item['product_id'] == $product['product_id']) {
-                                        $inOrder = true;
+                                        $inCart = true;
+                                        $cartQuantity = $item['quantity'];
                                         break;
                                     }
                                 }
-                                if ($inOrder) continue;
+                                
+                                $availableStock = $inCart ? $product['stock_quantity'] + $cartQuantity : $product['stock_quantity'];
                             ?>
-                            <tr data-product-id="<?php echo $product['product_id']; ?>">
-                                <td><?php echo htmlspecialchars($product['product_name']); ?></td>
-                                <td><?php echo htmlspecialchars($product['product_code']); ?></td>
-                                <td class="price"><?php echo number_format($product['price']); ?> đ</td>
-                                <td class="stock"><?php echo $product['quantity_in_stock']; ?></td>
-                                <td>
-                                    <input type="number" class="form-control form-control-sm quantity-input" 
-                                           min="1" max="<?php echo $product['quantity_in_stock']; ?>" 
-                                           value="1">
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-success add-to-order">
-                                        <i class="fas fa-plus"></i> Thêm
-                                    </button>
-                                </td>
-                            </tr>
+                                <tr data-product-id="<?= $product['product_id'] ?>">
+                                    <td><?= $index + 1 ?></td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <?php if (!empty($product['image_url'])): ?>
+                                                <img src="/quanlysanpham/uploads/products/<?= htmlspecialchars($product['image_url']) ?>" 
+                                                     alt="<?= htmlspecialchars($product['product_name']) ?>" 
+                                                     class="me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                            <?php else: ?>
+                                                <div class="bg-light d-flex align-items-center justify-content-center me-2" 
+                                                     style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-box text-muted"></i>
+                                                </div>
+                                            <?php endif; ?>
+                                            <div>
+                                                <div class="fw-bold"><?= htmlspecialchars($product['product_name']) ?></div>
+                                                <div class="text-muted small"><?= htmlspecialchars($product['product_code']) ?></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge bg-<?= $availableStock > 0 ? 'success' : 'danger' ?>">
+                                            <?= $availableStock ?>
+                                        </span>
+                                        <?php if ($inCart): ?>
+                                            <div class="text-muted small">Đã chọn: <?= $cartQuantity ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end fw-bold">
+                                        <?= number_format($product['price']) ?> ₫
+                                    </td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm quantity-decrease" 
+                                                    data-product-id="<?= $product['product_id'] ?>">-</button>
+                                            <input type="number" class="form-control text-center quantity-input" 
+                                                   data-product-id="<?= $product['product_id'] ?>" 
+                                                   value="1" min="1" max="<?= $availableStock ?>" 
+                                                   style="width: 50px;" <?= $availableStock <= 0 ? 'disabled' : '' ?>>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm quantity-increase" 
+                                                    data-product-id="<?= $product['product_id'] ?>"
+                                                    <?= $availableStock <= 0 ? 'disabled' : '' ?>>+</button>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-<?= $inCart ? 'warning' : 'primary' ?> add-to-cart" 
+                                                data-product-id="<?= $product['product_id'] ?>"
+                                                data-product-name="<?= htmlspecialchars($product['product_name']) ?>"
+                                                data-product-code="<?= htmlspecialchars($product['product_code']) ?>"
+                                                data-product-price="<?= $product['price'] ?>"
+                                                data-stock-quantity="<?= $availableStock ?>"
+                                                <?= $availableStock <= 0 ? 'disabled' : '' ?>>
+                                            <i class="fas fa-<?= $inCart ? 'edit' : 'plus' ?>"></i>
+                                        </button>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -312,138 +473,145 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="addSelectedProducts" data-bs-dismiss="modal">
+                    Thêm vào đơn hàng
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Hidden template for new order items -->
-<template id="orderItemTemplate">
-    <tr data-product-id="">
-        <td>
-            <input type="hidden" name="order_item_id[]" value="new">
-            <input type="hidden" name="product_id[]" value="">
-            <input type="hidden" name="product_name[]" value="">
-            <span class="product-name"></span>
-        </td>
-        <td>
-            <input type="number" class="form-control form-control-sm price-input" name="price[]" value="" min="0" step="1000" required>
-        </td>
-        <td>
-            <input type="number" class="form-control form-control-sm quantity-input" name="quantity[]" value="1" min="1" required>
-            <input type="hidden" class="original-quantity" value="0">
-        </td>
-        <td class="item-total">0 đ</td>
-        <td>
-            <button type="button" class="btn btn-sm btn-danger remove-item">
-                <i class="fas fa-trash"></i>
-            </button>
-        </td>
-    </tr>
-</template>
+<!-- Modal xác nhận hủy đơn hàng -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xác nhận hủy đơn hàng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn hủy đơn hàng <strong>#<?= htmlspecialchars($order['order_code']) ?></strong> không?</p>
+                <div class="mb-3">
+                    <label for="cancel_reason_modal" class="form-label">Lý do hủy <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="cancel_reason_modal" rows="3" required placeholder="Vui lòng nhập lý do hủy đơn hàng"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-danger" id="confirmCancelOrder">
+                    <i class="fas fa-times me-1"></i> Xác nhận hủy
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Load customer info when selected
-    const customerSelect = document.getElementById('customer_id');
-    if (customerSelect) {
-        customerSelect.addEventListener('change', function() {
-            const customerId = this.value;
-            if (customerId) {
-                // In a real application, you would fetch customer details from the server
-                // This is just a placeholder
-                fetch(`/quanlysanpham/api/customers/${customerId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('phone').value = data.phone || '';
-                        document.getElementById('email').value = data.email || '';
-                        if (!document.getElementById('address').value) {
-                            document.getElementById('address').value = data.address || '';
-                        }
-                    });
+    // Khởi tạo dữ liệu đơn hàng
+    const orderItems = <?= json_encode($order['order_items'] ?? []) ?>;
+    const orderData = <?= json_encode($order) ?>;
+    
+    // Khởi tạo giỏ hàng từ dữ liệu đơn hàng
+    let cartItems = [];
+    
+    orderItems.forEach(item => {
+        cartItems.push({
+            id: item.product_id,
+            name: item.product_name,
+            code: item.product_code,
+            price: parseFloat(item.unit_price),
+            quantity: parseInt(item.quantity),
+            stock: parseInt(item.stock_quantity),
+            image: item.image_url ? `/quanlysanpham/uploads/products/${item.image_url}` : ''
+        });
+    });
+    
+    // Render giỏ hàng
+    renderCart();
+    updateOrderSummary();
+    
+    // Xử lý hiển thị/ẩn lý do hủy đơn hàng
+    const statusSelect = document.getElementById('status');
+    const cancelReasonContainer = document.getElementById('cancelReasonContainer');
+    const cancelReasonInput = document.getElementById('cancel_reason');
+    
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function() {
+            if (this.value === 'Đã hủy') {
+                cancelReasonContainer.style.display = 'block';
+                if (cancelReasonInput) {
+                    cancelReasonInput.disabled = false;
+                    cancelReasonInput.required = true;
+                }
             } else {
-                document.getElementById('phone').value = '';
-                document.getElementById('email').value = '';
+                cancelReasonContainer.style.display = 'none';
+                if (cancelReasonInput) {
+                    cancelReasonInput.disabled = true;
+                    cancelReasonInput.required = false;
+                }
             }
         });
     }
-
-    // Add product to order
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('add-to-order')) {
-            const row = e.target.closest('tr');
-            const productId = row.dataset.productId;
-            const productName = row.cells[0].textContent.trim();
-            const price = parseFloat(row.cells[2].textContent.replace(/[^\d]/g, ''));
-            const quantityInput = row.querySelector('.quantity-input');
-            const quantity = parseInt(quantityInput.value) || 1;
-            const maxQuantity = parseInt(row.querySelector('.stock').textContent) || 1;
+    
+    // Xử lý nút xác nhận hủy đơn hàng
+    const confirmCancelBtn = document.getElementById('confirmCancelOrder');
+    if (confirmCancelBtn) {
+        confirmCancelBtn.addEventListener('click', function() {
+            const cancelReason = document.getElementById('cancel_reason_modal').value.trim();
             
-            // Validate quantity
-            if (quantity < 1) {
-                alert('Số lượng phải lớn hơn 0');
-                quantityInput.value = 1;
+            if (!cancelReason) {
+                showAlert('Vui lòng nhập lý do hủy đơn hàng', 'warning');
                 return;
             }
             
-            if (quantity > maxQuantity) {
-                alert(`Số lượng vượt quá tồn kho (${maxQuantity})`);
-                quantityInput.value = maxQuantity;
-                return;
+            // Cập nhật trạng thái và lý do hủy
+            if (statusSelect) {
+                statusSelect.value = 'Đã hủy';
+                statusSelect.dispatchEvent(new Event('change'));
             }
             
-            addProductToOrder({
-                product_id: productId,
-                product_name: productName,
-                price: price,
-                quantity: quantity,
-                max_quantity: maxQuantity
-            });
-            
-            // Reset quantity input
-            quantityInput.value = 1;
-        }
-    });
-    
-    // Remove item from order
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-item') || e.target.closest('.remove-item')) {
-            const button = e.target.classList.contains('remove-item') ? e.target : e.target.closest('.remove-item');
-            const row = button.closest('tr');
-            
-            // If this is an existing item, add a hidden input to mark it for deletion
-            const orderItemId = row.querySelector('input[name^="order_item_id"]')?.value;
-            if (orderItemId && orderItemId !== 'new') {
-                const deleteInput = document.createElement('input');
-                deleteInput.type = 'hidden';
-                deleteInput.name = 'deleted_items[]';
-                deleteInput.value = orderItemId;
-                document.getElementById('orderForm').appendChild(deleteInput);
+            if (cancelReasonInput) {
+                cancelReasonInput.value = cancelReason;
             }
             
-            row.remove();
-            updateOrderTotal();
-        }
-    });
+            // Đóng modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('cancelOrderModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Cuộn đến phần lý do hủy
+            cancelReasonContainer.scrollIntoView({ behavior: 'smooth' });
+            
+            showAlert('Đã cập nhật trạng thái hủy đơn hàng. Vui lòng lưu thay đổi.', 'info');
+        });
+    }
     
-    // Update item total when quantity or price changes
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('quantity-input') || e.target.classList.contains('price-input') || 
-            e.target.id === 'shipping_fee' || e.target.id === 'discount' || e.target.id === 'paid_amount') {
-            updateOrderTotal();
-        }
-    });
+    // Xử lý thanh toán
+    const isPaidCheckbox = document.getElementById('is_paid');
+    const paymentInfo = document.getElementById('paymentInfo');
     
-    // Search products
-    const searchInput = document.getElementById('searchProduct');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
+    if (isPaidCheckbox && paymentInfo) {
+        isPaidCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                paymentInfo.classList.remove('d-none');
+            } else {
+                paymentInfo.classList.add('d-none');
+            }
+        });
+    }
+    
+    // Tìm kiếm sản phẩm
+    const searchProduct = document.getElementById('searchProduct');
+    if (searchProduct) {
+        searchProduct.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase();
             const rows = document.querySelectorAll('#productList tr');
             
             rows.forEach(row => {
-                const productName = row.cells[0].textContent.toLowerCase();
-                const productCode = row.cells[1].textContent.toLowerCase();
+                const productName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const productCode = row.querySelector('td:nth-child(2) .small').textContent.toLowerCase();
                 
                 if (productName.includes(searchTerm) || productCode.includes(searchTerm)) {
                     row.style.display = '';
@@ -454,179 +622,324 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Save as draft
-    const saveDraftBtn = document.getElementById('saveDraft');
-    if (saveDraftBtn) {
-        saveDraftBtn.addEventListener('click', function() {
-            const form = document.getElementById('orderForm');
-            const draftInput = document.createElement('input');
-            draftInput.type = 'hidden';
-            draftInput.name = 'save_as_draft';
-            draftInput.value = '1';
-            form.appendChild(draftInput);
-            form.submit();
+    // Tăng/giảm số lượng sản phẩm
+    document.addEventListener('click', function(e) {
+        // Tăng/giảm số lượng trong modal
+        if (e.target.classList.contains('quantity-increase') || e.target.classList.contains('quantity-decrease')) {
+            const input = e.target.classList.contains('quantity-increase') 
+                ? e.target.previousElementSibling 
+                : e.target.nextElementSibling;
+                
+            if (e.target.classList.contains('quantity-increase')) {
+                const max = parseInt(input.getAttribute('max')) || 9999;
+                if (parseInt(input.value) < max) {
+                    input.value = parseInt(input.value) + 1;
+                }
+            } else {
+                if (parseInt(input.value) > 1) {
+                    input.value = parseInt(input.value) - 1;
+                }
+            }
+        }
+        
+        // Thêm sản phẩm vào giỏ hàng
+        if (e.target.classList.contains('add-to-cart') || e.target.closest('.add-to-cart')) {
+            const button = e.target.classList.contains('add-to-cart') ? e.target : e.target.closest('.add-to-cart');
+            const productId = parseInt(button.getAttribute('data-product-id'));
+            const productName = button.getAttribute('data-product-name');
+            const productCode = button.getAttribute('data-product-code');
+            const productPrice = parseFloat(button.getAttribute('data-product-price'));
+            const stockQuantity = parseInt(button.getAttribute('data-stock-quantity'));
+            const quantityInput = button.closest('tr').querySelector('.quantity-input');
+            const quantity = parseInt(quantityInput ? quantityInput.value : 1);
+            
+            // Kiểm tra nếu sản phẩm đã có trong giỏ hàng
+            const existingItemIndex = cartItems.findIndex(item => item.id === productId);
+            
+            if (existingItemIndex >= 0) {
+                // Cập nhật số lượng nếu sản phẩm đã có trong giỏ
+                cartItems[existingItemIndex].quantity = quantity;
+                showAlert(`Đã cập nhật số lượng ${productName} thành ${quantity}`, 'success');
+            } else {
+                // Thêm sản phẩm mới vào giỏ hàng
+                const productImage = button.closest('tr').querySelector('img');
+                const imageUrl = productImage ? productImage.src : '';
+                
+                cartItems.push({
+                    id: productId,
+                    name: productName,
+                    code: productCode,
+                    price: productPrice,
+                    quantity: quantity,
+                    stock: stockQuantity,
+                    image: imageUrl
+                });
+                
+                showAlert(`Đã thêm ${quantity} ${productName} vào đơn hàng`, 'success');
+            }
+            
+            // Cập nhật giao diện
+            renderCart();
+            updateOrderSummary();
+        }
+    });
+    
+    // Render giỏ hàng
+    function renderCart() {
+        const orderItemsContainer = document.getElementById('orderItems');
+        const emptyCartRow = document.getElementById('emptyCart');
+        const orderSummary = document.getElementById('orderSummary');
+        
+        // Xóa tất cả sản phẩm hiện có
+        orderItemsContainer.querySelectorAll('tr:not(#emptyCart)').forEach(row => row.remove());
+        
+        if (cartItems.length === 0) {
+            if (emptyCartRow) emptyCartRow.style.display = '';
+            if (orderSummary) orderSummary.classList.add('d-none');
+            return;
+        }
+        
+        if (emptyCartRow) emptyCartRow.style.display = 'none';
+        if (orderSummary) orderSummary.classList.remove('d-none');
+        
+        // Thêm từng sản phẩm vào giỏ hàng
+        cartItems.forEach((item, index) => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-product-id', item.id);
+            row.innerHTML = `
+                <td class="align-middle">${index + 1}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        ${item.image ? 
+                            `<div class="flex-shrink-0 me-2">
+                                <img src="${item.image}" alt="${item.name}" class="product-image" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.src='/quanlysanpham/assets/img/no-image.png'">
+                            </div>` : 
+                            `<div class="flex-shrink-0 me-2">
+                                <div class="bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-box text-muted"></i>
+                                </div>
+                            </div>`
+                        }
+                        <div>
+                            <div class="fw-bold product-name">${item.name}</div>
+                            <div class="text-muted small product-code">${item.code}</div>
+                            <div class="text-muted small">Tồn kho: <span class="stock-quantity">${item.stock}</span></div>
+                        </div>
+                    </div>
+                </td>
+                <td class="align-middle text-end">
+                    <span class="product-price">${item.price.toLocaleString()}</span> ₫
+                </td>
+                <td class="align-middle">
+                    <div class="input-group input-group-sm">
+                        <button type="button" class="btn btn-outline-secondary btn-sm cart-quantity-decrease">-</button>
+                        <input type="number" class="form-control text-center cart-quantity" 
+                               value="${item.quantity}" min="1" max="${item.stock}">
+                        <button type="button" class="btn btn-outline-secondary btn-sm cart-quantity-increase">+</button>
+                    </div>
+                </td>
+                <td class="align-middle text-end fw-bold item-total">${(item.price * item.quantity).toLocaleString()} ₫</td>
+                <td class="align-middle text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-item">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            `;
+            
+            orderItemsContainer.appendChild(row);
+        });
+        
+        // Thêm sự kiện cho các nút tăng/giảm số lượng
+        document.querySelectorAll('.cart-quantity-increase').forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.previousElementSibling;
+                const max = parseInt(input.getAttribute('max')) || 9999;
+                if (parseInt(input.value) < max) {
+                    input.value = parseInt(input.value) + 1;
+                    updateCartItemQuantity(parseInt(this.closest('tr').getAttribute('data-product-id')), parseInt(input.value));
+                    updateOrderSummary();
+                }
+            });
+        });
+        
+        document.querySelectorAll('.cart-quantity-decrease').forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.nextElementSibling;
+                if (parseInt(input.value) > 1) {
+                    input.value = parseInt(input.value) - 1;
+                    updateCartItemQuantity(parseInt(this.closest('tr').getAttribute('data-product-id')), parseInt(input.value));
+                    updateOrderSummary();
+                }
+            });
+        });
+        
+        // Thêm sự kiện cho nút xóa sản phẩm
+        document.querySelectorAll('.remove-item').forEach(button => {
+            button.addEventListener('click', function() {
+                const productId = parseInt(this.closest('tr').getAttribute('data-product-id'));
+                removeFromCart(productId);
+            });
+        });
+        
+        // Thêm sự kiện thay đổi số lượng trực tiếp
+        document.querySelectorAll('.cart-quantity').forEach(input => {
+            input.addEventListener('change', function() {
+                const productId = parseInt(this.closest('tr').getAttribute('data-product-id'));
+                const quantity = parseInt(this.value) || 1;
+                
+                if (quantity < 1) {
+                    this.value = 1;
+                    updateCartItemQuantity(productId, 1);
+                } else {
+                    updateCartItemQuantity(productId, quantity);
+                }
+                
+                updateOrderSummary();
+            });
         });
     }
     
-    // Form submission
+    // Cập nhật số lượng sản phẩm trong giỏ hàng
+    function updateCartItemQuantity(productId, quantity) {
+        const itemIndex = cartItems.findIndex(item => item.id === productId);
+        
+        if (itemIndex >= 0) {
+            cartItems[itemIndex].quantity = quantity;
+            
+            // Cập nhật tổng tiền trong dòng
+            const row = document.querySelector(`#orderItems tr[data-product-id="${productId}"]`);
+            if (row) {
+                const price = parseFloat(row.querySelector('.product-price').textContent.replace(/[^0-9]/g, ''));
+                const total = price * quantity;
+                row.querySelector('.item-total').textContent = total.toLocaleString() + ' ₫';
+            }
+            
+            // Cập nhật số thứ tự
+            updateRowNumbers();
+        }
+    }
+    
+    // Xóa sản phẩm khỏi giỏ hàng
+    function removeFromCart(productId) {
+        const itemIndex = cartItems.findIndex(item => item.id === productId);
+        
+        if (itemIndex >= 0) {
+            const itemName = cartItems[itemIndex].name;
+            cartItems.splice(itemIndex, 1);
+            
+            // Cập nhật giao diện
+            renderCart();
+            updateOrderSummary();
+            
+            showAlert(`Đã xóa ${itemName} khỏi đơn hàng`, 'info');
+        }
+    }
+    
+    // Cập nhật số thứ tự các dòng
+    function updateRowNumbers() {
+        const rows = document.querySelectorAll('#orderItems tr:not(#emptyCart)');
+        rows.forEach((row, index) => {
+            row.querySelector('td:first-child').textContent = index + 1;
+        });
+    }
+    
+    // Cập nhật tổng kết đơn hàng
+    function updateOrderSummary() {
+        let subtotal = 0;
+        let totalItems = 0;
+        
+        cartItems.forEach(item => {
+            subtotal += item.price * item.quantity;
+            totalItems += item.quantity;
+        });
+        
+        const discount = parseFloat(document.getElementById('discount').value) || 0;
+        const shippingFee = parseFloat(document.getElementById('shippingFee').value) || 0;
+        const total = subtotal - discount + shippingFee;
+        
+        // Cập nhật giao diện
+        document.getElementById('subtotalItems').textContent = totalItems;
+        document.getElementById('subtotalAmount').textContent = subtotal.toLocaleString() + ' ₫';
+        document.getElementById('discountAmount').textContent = '-' + discount.toLocaleString() + ' ₫';
+        document.getElementById('shippingFeeAmount').textContent = shippingFee.toLocaleString() + ' ₫';
+        document.getElementById('totalAmount').textContent = total.toLocaleString() + ' ₫';
+        
+        // Cập nhật giá trị ẩn cho form
+        document.getElementById('totalAmountInput').value = total;
+        document.getElementById('orderItemsInput').value = JSON.stringify(cartItems.map(item => ({
+            product_id: item.id,
+            quantity: item.quantity,
+            unit_price: item.price
+        })));
+    }
+    
+    // Xử lý sự kiện thay đổi giảm giá và phí vận chuyển
+    [document.getElementById('discount'), document.getElementById('shippingFee')].forEach(input => {
+        if (input) {
+            input.addEventListener('change', updateOrderSummary);
+            input.addEventListener('input', updateOrderSummary);
+        }
+    });
+    
+    // Xử lý gửi form
     const orderForm = document.getElementById('orderForm');
     if (orderForm) {
         orderForm.addEventListener('submit', function(e) {
-            const items = document.querySelectorAll('#orderItems tr');
-            if (items.length === 0) {
+            if (cartItems.length === 0) {
                 e.preventDefault();
-                alert('Vui lòng thêm ít nhất một sản phẩm vào đơn hàng');
+                showAlert('Vui lòng thêm ít nhất một sản phẩm vào đơn hàng', 'warning');
                 return false;
             }
             
-            // Validate payment amount
-            const totalAmount = parseFloat(document.getElementById('orderTotal').textContent.replace(/[^\d]/g, '')) || 0;
-            const paidAmount = parseFloat(document.getElementById('paid_amount').value) || 0;
+            // Kiểm tra thông tin khách hàng
+            const customerId = document.getElementById('customer_id').value;
+            const shippingAddress = document.getElementById('shipping_address').value;
             
-            if (paidAmount > totalAmount) {
+            if (!customerId) {
                 e.preventDefault();
-                alert('Số tiền đã thanh toán không được lớn hơn tổng tiền đơn hàng');
+                showAlert('Vui lòng chọn khách hàng', 'warning');
                 return false;
+            }
+            
+            if (!shippingAddress.trim()) {
+                e.preventDefault();
+                showAlert('Vui lòng nhập địa chỉ giao hàng', 'warning');
+                return false;
+            }
+            
+            // Vô hiệu hóa nút gửi để tránh gửi nhiều lần
+            const submitButton = orderForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang lưu...';
             }
             
             return true;
         });
     }
-    
-    // Initialize order total calculation
-    updateOrderTotal();
 });
 
-// Function to add product to order
-function addProductToOrder(product) {
-    const orderItems = document.getElementById('orderItems');
-    const template = document.getElementById('orderItemTemplate');
-    const clone = template.content.cloneNode(true);
+// Hàm hiển thị thông báo
+function showAlert(message, type = 'success') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.role = 'alert';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
     
-    const row = clone.querySelector('tr');
-    row.dataset.productId = product.product_id;
+    document.body.appendChild(alertDiv);
     
-    const productIdInput = clone.querySelector('input[name="product_id[]"]');
-    productIdInput.value = product.product_id;
-    
-    const productNameInput = clone.querySelector('input[name="product_name[]"]');
-    productNameInput.value = product.product_name;
-    
-    const productNameSpan = clone.querySelector('.product-name');
-    productNameSpan.textContent = product.product_name;
-    
-    const priceInput = clone.querySelector('.price-input');
-    priceInput.value = product.price;
-    priceInput.max = product.price * 2; // Allow some markup
-    
-    const quantityInput = clone.querySelector('.quantity-input');
-    quantityInput.value = product.quantity;
-    quantityInput.max = product.max_quantity;
-    
-    // Calculate initial total
-    updateRowTotal(row);
-    
-    // Check if product already exists in order
-    const existingRow = orderItems.querySelector(`tr[data-product-id="${product.product_id}"]`);
-    if (existingRow) {
-        const existingQuantityInput = existingRow.querySelector('.quantity-input');
-        const newQuantity = parseInt(existingQuantityInput.value) + product.quantity;
-        const maxQuantity = parseInt(existingRow.querySelector('.quantity-input').max) || 999;
-        
-        if (newQuantity <= maxQuantity) {
-            existingQuantityInput.value = newQuantity;
-            updateRowTotal(existingRow);
-            updateOrderTotal();
-            return;
-        } else {
-            alert(`Số lượng vượt quá tồn kho (${maxQuantity})`);
-            existingQuantityInput.value = maxQuantity;
-            updateRowTotal(existingRow);
-            updateOrderTotal();
-            return;
-        }
-    }
-    
-    orderItems.appendChild(clone);
-    updateOrderTotal();
-}
-
-// Function to update row total
-function updateRowTotal(row) {
-    const priceInput = row.querySelector('.price-input');
-    const quantityInput = row.querySelector('.quantity-input');
-    const totalCell = row.querySelector('.item-total');
-    
-    const price = parseFloat(priceInput.value) || 0;
-    const quantity = parseInt(quantityInput.value) || 0;
-    const total = price * quantity;
-    
-    totalCell.textContent = new Intl.NumberFormat('vi-VN').format(total) + ' đ';
-    return total;
-}
-
-// Function to update order total
-function updateOrderTotal() {
-    const rows = document.querySelectorAll('#orderItems tr');
-    let subtotal = 0;
-    
-    // Calculate subtotal from all items
-    rows.forEach(row => {
-        subtotal += updateRowTotal(row);
-    });
-    
-    // Get other values
-    const shippingFee = parseFloat(document.getElementById('shipping_fee').value) || 0;
-    const discount = parseFloat(document.getElementById('discount').value) || 0;
-    const paidAmount = parseFloat(document.getElementById('paid_amount').value) || 0;
-    
-    // Calculate total
-    const total = subtotal + shippingFee - discount;
-    const remaining = Math.max(0, total - paidAmount);
-    
-    // Update display
-    document.getElementById('subtotal').textContent = new Intl.NumberFormat('vi-VN').format(subtotal) + ' đ';
-    document.getElementById('orderTotal').textContent = new Intl.NumberFormat('vi-VN').format(total) + ' đ';
-    document.getElementById('paidAmount').textContent = new Intl.NumberFormat('vi-VN').format(paidAmount) + ' đ';
-    document.getElementById('remainingAmount').textContent = new Intl.NumberFormat('vi-VN').format(remaining) + ' đ';
-    
-    return total;
+    // Tự động ẩn thông báo sau 5 giây
+    setTimeout(() => {
+        alertDiv.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(alertDiv);
+        }, 150);
+    }, 5000);
 }
 </script>
 
-<style>
-.timeline {
-    position: relative;
-    padding-left: 1.5rem;
-    margin: 0 0 0 1rem;
-    border-left: 2px solid #dee2e6;
-}
-
-.timeline-item {
-    position: relative;
-    padding-bottom: 1.5rem;
-}
-
-.timeline-marker {
-    position: absolute;
-    left: -1.7rem;
-    width: 1rem;
-    height: 1rem;
-    border-radius: 50%;
-    background-color: #0d6efd;
-    border: 2px solid #fff;
-}
-
-.timeline-content {
-    padding: 0.5rem 1rem;
-    background-color: #f8f9fa;
-    border-radius: 0.25rem;
-    margin-bottom: 1rem;
-}
-
-.timeline-item:last-child .timeline-content {
-    margin-bottom: 0;
-}
-</style>
-
-<?php include '../../views/layouts/footer.php'; ?>
+<?php include '../layouts/footer.php'; ?>

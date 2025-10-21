@@ -1,283 +1,184 @@
 <?php
+/**
+ * Class Inventory - Xử lý các thao tác liên quan đến quản lý kho
+ */
 class Inventory {
-    private $db;
+    private $conn;
     
     public function __construct($db) {
-        $this->db = $db;
+        $this->conn = $db;
     }
-
-    // Lấy danh sách tất cả sản phẩm
-    public function getAllProducts() {
-        $query = "SELECT product_id, product_code, product_name, stock_quantity 
-                 FROM products 
-                 WHERE is_active = 1 
-                 ORDER BY product_name ASC";
-        $stmt = $this->db->prepare($query);
+    
+    /**
+     * Lấy tồn kho hiện tại của sản phẩm
+     */
+    public function getCurrentStock($product_id) {
+        $query = "SELECT stock_quantity FROM products WHERE product_id = :product_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":product_id", $product_id);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? (int)$row['stock_quantity'] : 0;
     }
-
-    // Tạo mã phiếu tự động
-    private function generateTransactionCode($prefix) {
-        $date = date('Ymd');
-        $random = str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
-        return $prefix . $date . $random;
-    }
-
-    // Lấy tất cả phiếu nhập kho
-    public function getAllImports() {
-        $query = "SELECT wi.*, p.product_code, p.product_name 
-                 FROM warehouse_import wi
-                 JOIN products p ON wi.product_id = p.product_id
-                 ORDER BY wi.import_date DESC, wi.import_id DESC";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    // Lấy tất cả phiếu xuất kho
-    public function getAllExports() {
-        $query = "SELECT we.*, p.product_code, p.product_name 
-                 FROM warehouse_export we
-                 JOIN products p ON we.product_id = p.product_id
-                 ORDER BY we.export_date DESC, we.export_id DESC";
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    // Lấy chi tiết phiếu nhập kho theo ID
-    public function getImportById($id) {
-        $query = "SELECT wi.*, p.product_code, p.product_name, p.price, p.expiry_date, 
-                        p.stock_quantity, p.min_stock
-                 FROM warehouse_import wi
-                 JOIN products p ON wi.product_id = p.product_id
-                 WHERE wi.import_id = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    // Lấy chi tiết phiếu xuất kho theo ID
-    public function getExportById($id) {
-        $query = "SELECT we.*, p.product_code, p.product_name, p.price, p.expiry_date, 
-                        p.stock_quantity, p.min_stock
-                 FROM warehouse_export we
-                 JOIN products p ON we.product_id = p.product_id
-                 WHERE we.export_id = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    // Tạo phiếu nhập kho
-    public function createImport($data) {
-        try {
-            $this->db->beginTransaction();
-
-            // Tạo mã phiếu nhập
-            $importCode = $this->generateTransactionCode('PN');
+    
+    /**
+     * Cập nhật tồn kho sản phẩm
+     */
+    public function updateStock($product_id, $quantity_change, $type = 'import') {
+        $current_stock = $this->getCurrentStock($product_id);
+        $new_stock = ($type === 'import') 
+            ? $current_stock + $quantity_change 
+            : $current_stock - $quantity_change;
             
-            // Thêm phiếu nhập
-            $query = "INSERT INTO warehouse_import 
-                     (import_code, product_id, quantity, import_date, import_by, note, status)
-                     VALUES (:import_code, :product_id, :quantity, :import_date, :import_by, :note, 'Completed')";
-            
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':import_code', $importCode);
-            $stmt->bindParam(':product_id', $data['product_id'], PDO::PARAM_INT);
-            $stmt->bindParam(':quantity', $data['quantity'], PDO::PARAM_INT);
-            $stmt->bindParam(':import_date', $data['date']);
-            $stmt->bindParam(':import_by', $data['user']);
-            $stmt->bindParam(':note', $data['note']);
-            $stmt->execute();
-
-            // Cập nhật tồn kho
-            $updateQuery = "UPDATE products 
-                           SET stock_quantity = stock_quantity + :quantity,
-                               updated_at = NOW()
-                           WHERE product_id = :product_id";
-            $updateStmt = $this->db->prepare($updateQuery);
-            $updateStmt->bindParam(':quantity', $data['quantity'], PDO::PARAM_INT);
-            $updateStmt->bindParam(':product_id', $data['product_id'], PDO::PARAM_INT);
-            $updateStmt->execute();
-
-            $this->db->commit();
-            return true;
-        } catch (Exception $e) {
-            $this->db->rollBack();
-            error_log("Error creating import: " . $e->getMessage());
-            return false;
+        // Đảm bảo tồn kho không âm
+        $new_stock = max(0, $new_stock);
+        
+        $query = "UPDATE products SET stock_quantity = :stock_quantity, 
+                  status = CASE 
+                    WHEN stock_quantity <= 0 AND :new_stock > 0 THEN 'Active' 
+                    WHEN stock_quantity > 0 AND :new_stock <= 0 THEN 'Out of stock' 
+                    ELSE status 
+                  END 
+                  WHERE product_id = :product_id";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":stock_quantity", $new_stock);
+        $stmt->bindParam(":new_stock", $new_stock);
+        $stmt->bindParam(":product_id", $product_id);
+        
+        return $stmt->execute();
+    }
+    
+    /**
+     * Lấy lịch sử nhập/xuất kho
+     */
+    public function getInventoryHistory($product_id = null, $type = null, $start_date = null, $end_date = null, $limit = 10, $offset = 0) {
+        $query = "SELECT h.*, p.product_name, p.product_code 
+                 FROM warehouse_history h 
+                 LEFT JOIN products p ON h.product_id = p.product_id 
+                 WHERE 1=1";
+                 
+        $params = [];
+        
+        if ($product_id) {
+            $query .= " AND h.product_id = :product_id";
+            $params[':product_id'] = $product_id;
         }
-    }
-
-    // Tạo phiếu xuất kho
-    public function createExport($data) {
-        try {
-            $this->db->beginTransaction();
-
-            // Kiểm tra tồn kho
-            $checkStock = $this->db->prepare(
-                "SELECT stock_quantity FROM products WHERE product_id = :product_id FOR UPDATE"
-            );
-            $checkStock->bindParam(':product_id', $data['product_id'], PDO::PARAM_INT);
-            $checkStock->execute();
-            $stock = $checkStock->fetch(PDO::FETCH_ASSOC);
-
-            if (!$stock || $stock['stock_quantity'] < $data['quantity']) {
-                throw new Exception('Số lượng tồn kho không đủ để xuất');
-            }
-
-            // Tạo mã phiếu xuất
-            $exportCode = $this->generateTransactionCode('PX');
-            
-            // Thêm phiếu xuất
-            $query = "INSERT INTO warehouse_export 
-                     (export_code, product_id, quantity, export_date, export_by, reason, note, status)
-                     VALUES (:export_code, :product_id, :quantity, :export_date, :export_by, :reason, :note, 'Completed')";
-            
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':export_code', $exportCode);
-            $stmt->bindParam(':product_id', $data['product_id'], PDO::PARAM_INT);
-            $stmt->bindParam(':quantity', $data['quantity'], PDO::PARAM_INT);
-            $stmt->bindParam(':export_date', $data['date']);
-            $stmt->bindParam(':export_by', $data['user']);
-            $stmt->bindParam(':reason', $data['reason']);
-            $stmt->bindParam(':note', $data['note']);
-            $stmt->execute();
-
-            // Cập nhật tồn kho
-            $updateQuery = "UPDATE products 
-                           SET stock_quantity = stock_quantity - :quantity,
-                               updated_at = NOW()
-                           WHERE product_id = :product_id";
-            $updateStmt = $this->db->prepare($updateQuery);
-            $updateStmt->bindParam(':quantity', $data['quantity'], PDO::PARAM_INT);
-            $updateStmt->bindParam(':product_id', $data['product_id'], PDO::PARAM_INT);
-            $updateStmt->execute();
-
-            $this->db->commit();
-            return true;
-        } catch (Exception $e) {
-            $this->db->rollBack();
-            error_log("Error creating export: " . $e->getMessage());
-            throw $e; // Ném lại để controller xử lý thông báo lỗi
+        
+        if ($type) {
+            $query .= " AND h.action_type = :action_type";
+            $params[':action_type'] = $type;
         }
+        
+        if ($start_date) {
+            $query .= " AND DATE(h.action_at) >= :start_date";
+            $params[':start_date'] = $start_date;
+        }
+        
+        if ($end_date) {
+            $query .= " AND DATE(h.action_at) <= :end_date";
+            $params[':end_date'] = $end_date;
+        }
+        
+        $query .= " ORDER BY h.action_at DESC LIMIT :limit OFFSET :offset";
+        
+        $stmt = $this->conn->prepare($query);
+        
+        // Bind các tham số
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        
+        $stmt->execute();
+        return $stmt;
     }
-
-    // Lấy tổng số lượng nhập/xuất trong khoảng thời gian
-    public function getInventoryStats($startDate = null, $endDate = null) {
+    
+    /**
+     * Lấy tổng số bản ghi lịch sử
+     */
+    public function countInventoryHistory($product_id = null, $type = null, $start_date = null, $end_date = null) {
+        $query = "SELECT COUNT(*) as total 
+                 FROM warehouse_history h 
+                 WHERE 1=1";
+                 
+        $params = [];
+        
+        if ($product_id) {
+            $query .= " AND h.product_id = :product_id";
+            $params[':product_id'] = $product_id;
+        }
+        
+        if ($type) {
+            $query .= " AND h.action_type = :action_type";
+            $params[':action_type'] = $type;
+        }
+        
+        if ($start_date) {
+            $query .= " AND DATE(h.action_at) >= :start_date";
+            $params[':start_date'] = $start_date;
+        }
+        
+        if ($end_date) {
+            $query .= " AND DATE(h.action_at) <= :end_date";
+            $params[':end_date'] = $end_date;
+        }
+        
+        $stmt = $this->conn->prepare($query);
+        
+        // Bind các tham số
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        return $row ? (int)$row['total'] : 0;
+    }
+    
+    /**
+     * Lấy thống kê tồn kho
+     */
+    public function getInventoryStatistics() {
         $stats = [
-            'total_import' => 0,
-            'total_export' => 0,
-            'import_by_month' => [],
-            'export_by_month' => [],
-            'top_import_products' => [],
-            'top_export_products' => []
+            'total_products' => 0,
+            'total_stock' => 0,
+            'out_of_stock' => 0,
+            'low_stock' => 0,
+            'expiring_soon' => 0
         ];
-
-        // Tổng nhập/xuất
-        $importQuery = "SELECT COALESCE(SUM(quantity), 0) as total 
-                       FROM warehouse_import 
-                       WHERE status = 'Completed'";
         
-        $exportQuery = "SELECT COALESCE(SUM(quantity), 0) as total 
-                       FROM warehouse_export 
-                       WHERE status = 'Completed'";
-
-        if ($startDate && $endDate) {
-            $importQuery .= " AND import_date BETWEEN :start_date AND :end_date";
-            $exportQuery .= " AND export_date BETWEEN :start_date AND :end_date";
-        }
-
-        // Thực hiện truy vấn tổng nhập
-        $stmt = $this->db->prepare($importQuery);
-        if ($startDate && $endDate) {
-            $stmt->bindParam(':start_date', $startDate);
-            $stmt->bindParam(':end_date', $endDate);
-        }
-        $stmt->execute();
-        $stats['total_import'] = (int)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        // Thực hiện truy vấn tổng xuất
-        $stmt = $this->db->prepare($exportQuery);
-        if ($startDate && $endDate) {
-            $stmt->bindParam(':start_date', $startDate);
-            $stmt->bindParam(':end_date', $endDate);
-        }
-        $stmt->execute();
-        $stats['total_export'] = (int)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-        // Thống kê nhập/xuất theo tháng (12 tháng gần nhất)
-        $endDate = $endDate ?: date('Y-m-d');
-        $startDate = $startDate ?: date('Y-m-d', strtotime('-12 months', strtotime($endDate)));
+        // Tổng số sản phẩm
+        $query = "SELECT COUNT(*) as total FROM products WHERE status != 'Disabled'";
+        $stmt = $this->conn->query($query);
+        $stats['total_products'] = (int)$stmt->fetchColumn();
         
-        // Lấy dữ liệu nhập theo tháng
-        $monthlyImportQuery = "SELECT 
-            DATE_FORMAT(import_date, '%Y-%m') as month,
-            SUM(quantity) as total
-            FROM warehouse_import
-            WHERE import_date BETWEEN :start_date AND :end_date
-            GROUP BY DATE_FORMAT(import_date, '%Y-%m')
-            ORDER BY month ASC";
-            
-        $stmt = $this->db->prepare($monthlyImportQuery);
-        $stmt->bindParam(':start_date', $startDate);
-        $stmt->bindParam(':end_date', $endDate);
-        $stmt->execute();
-        $stats['import_by_month'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-        // Lấy dữ liệu xuất theo tháng
-        $monthlyExportQuery = "SELECT 
-            DATE_FORMAT(export_date, '%Y-%m') as month,
-            SUM(quantity) as total
-            FROM warehouse_export
-            WHERE export_date BETWEEN :start_date AND :end_date
-            GROUP BY DATE_FORMAT(export_date, '%Y-%m')
-            ORDER BY month ASC";
-            
-        $stmt = $this->db->prepare($monthlyExportQuery);
-        $stmt->bindParam(':start_date', $startDate);
-        $stmt->bindParam(':end_date', $endDate);
-        $stmt->execute();
-        $stats['export_by_month'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-        // Top sản phẩm nhập nhiều nhất
-        $topImportQuery = "SELECT 
-            p.product_name,
-            SUM(wi.quantity) as total_quantity
-            FROM warehouse_import wi
-            JOIN products p ON wi.product_id = p.product_id
-            WHERE wi.import_date BETWEEN :start_date AND :end_date
-            GROUP BY wi.product_id
-            ORDER BY total_quantity DESC
-            LIMIT 5";
-            
-        $stmt = $this->db->prepare($topImportQuery);
-        $stmt->bindParam(':start_date', $startDate);
-        $stmt->bindParam(':end_date', $endDate);
-        $stmt->execute();
-        $stats['top_import_products'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Top sản phẩm xuất nhiều nhất
-        $topExportQuery = "SELECT 
-            p.product_name,
-            SUM(we.quantity) as total_quantity
-            FROM warehouse_export we
-            JOIN products p ON we.product_id = p.product_id
-            WHERE we.export_date BETWEEN :start_date AND :end_date
-            GROUP BY we.product_id
-            ORDER BY total_quantity DESC
-            LIMIT 5";
-            
-        $stmt = $this->db->prepare($topExportQuery);
-        $stmt->bindParam(':start_date', $startDate);
-        $stmt->bindParam(':end_date', $endDate);
-        $stmt->execute();
-        $stats['top_export_products'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+        // Tổng tồn kho
+        $query = "SELECT SUM(stock_quantity) as total FROM products WHERE status = 'Active'";
+        $stmt = $this->conn->query($query);
+        $stats['total_stock'] = (int)$stmt->fetchColumn();
+        
+        // Sản phẩm hết hàng
+        $query = "SELECT COUNT(*) as total FROM products WHERE status = 'Out of stock'";
+        $stmt = $this->conn->query($query);
+        $stats['out_of_stock'] = (int)$stmt->fetchColumn();
+        
+        // Sản phẩm sắp hết hàng (dưới 10 sản phẩm)
+        $query = "SELECT COUNT(*) as total FROM products WHERE stock_quantity > 0 AND stock_quantity <= 10 AND status = 'Active'";
+        $stmt = $this->conn->query($query);
+        $stats['low_stock'] = (int)$stmt->fetchColumn();
+        
+        // Sản phẩm sắp hết hạn (trong vòng 30 ngày tới)
+        $query = "SELECT COUNT(*) as total FROM products 
+                 WHERE expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) 
+                 AND status = 'Active'";
+        $stmt = $this->conn->query($query);
+        $stats['expiring_soon'] = (int)$stmt->fetchColumn();
+        
         return $stats;
     }
 }
