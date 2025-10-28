@@ -156,7 +156,28 @@ class OrderController {
         
         // Lấy chi tiết đơn hàng
         $orderDetail = new OrderDetail($this->db);
-        $order_items = $orderDetail->getByOrderId($id)->fetchAll(PDO::FETCH_ASSOC);
+        $order_items = $orderDetail->getByOrderId($id);
+        
+        // Chuẩn bị dữ liệu cho view
+        $order = [
+            'order_id' => $this->order->order_id,
+            'order_code' => $this->order->order_code,
+            'customer_id' => $this->order->customer_id,
+            'order_date' => $this->order->order_date,
+            'total_amount' => $this->order->total_amount,
+            'status' => $this->order->status,
+            'payment_method' => $this->order->payment_method,
+            'shipping_address' => $this->order->shipping_address,
+            'shipping_note' => $this->order->shipping_note,
+            'cancel_reason' => $this->order->cancel_reason,
+            'customer_name' => $this->order->customer_name,
+            'customer_phone' => $this->order->customer_phone,
+            'customer_email' => $this->order->customer_email,
+            'order_items' => $order_items,
+            'discount_amount' => 0, // Chưa có trong database
+            'shipping_fee' => 0, // Chưa có trong database
+            'payment_status' => 'Chưa thanh toán' // Chưa có trong database
+        ];
         
         // Load view
         require_once __DIR__ . '/../views/orders/view.php';
@@ -167,6 +188,11 @@ class OrderController {
      */
     public function updateStatus() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ']);
+                exit;
+            }
             redirect('/controllers/OrderController.php?action=index');
             return;
         }
@@ -188,17 +214,34 @@ class OrderController {
                 $this->order->cancel_reason = $cancel_reason;
             }
             
-            if ($this->order->update()) {
-                setFlashMessage('success', 'Cập nhật trạng thái đơn hàng thành công');
+            if ($this->order->updateStatus($order_id, $new_status, $cancel_reason)) {
+                // Kiểm tra nếu là AJAX request
+                if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true, 'message' => 'Cập nhật trạng thái đơn hàng thành công']);
+                    exit;
+                } else {
+                    setFlashMessage('success', 'Cập nhật trạng thái đơn hàng thành công');
+                }
             } else {
                 throw new Exception("Có lỗi xảy ra khi cập nhật trạng thái đơn hàng");
             }
             
         } catch (Exception $e) {
-            setFlashMessage('error', 'Lỗi: ' . $e->getMessage());
+            // Kiểm tra nếu là AJAX request
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()]);
+                exit;
+            } else {
+                setFlashMessage('error', 'Lỗi: ' . $e->getMessage());
+            }
         }
         
-        redirect('/controllers/OrderController.php?action=view&id=' . $order_id);
+        // Chỉ redirect nếu không phải AJAX request
+        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] !== 'XMLHttpRequest') {
+            redirect('/controllers/OrderController.php?action=view&id=' . $order_id);
+        }
     }
     
     /**
@@ -219,7 +262,7 @@ class OrderController {
         
         // Lấy chi tiết đơn hàng
         $orderDetail = new OrderDetail($this->db);
-        $order_items = $orderDetail->getByOrderId($id)->fetchAll(PDO::FETCH_ASSOC);
+        $order_items = $orderDetail->getByOrderId($id);
         
         // Tạo nội dung hóa đơn
         ob_start();

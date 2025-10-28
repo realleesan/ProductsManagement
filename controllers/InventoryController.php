@@ -54,8 +54,13 @@ class InventoryController {
      * Hiển thị form nhập kho
      */
     public function importForm() {
-        // Lấy danh sách sản phẩm còn hoạt động
-        $products = $this->product->getAll('', '', 'Active')->fetchAll();
+        // Lấy danh sách sản phẩm (bao gồm cả sản phẩm hết hàng nhưng loại bỏ sản phẩm hết hạn)
+        $products = $this->product->getAll('', '', '')->fetchAll();
+        
+        // Lọc sản phẩm không bị vô hiệu hóa và không hết hạn
+        $products = array_filter($products, function($product) {
+            return $product['status'] != 'Disabled' && $product['status'] != 'Expired';
+        });
         
         // Tạo mã phiếu nhập tự động
         $import_code = 'PN' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
@@ -76,8 +81,8 @@ class InventoryController {
             // Lấy dữ liệu từ form
             $product_id = (int)$_POST['product_id'];
             $quantity = (int)$_POST['quantity'];
-            $import_date = $_POST['import_date'];
-            $import_by = $_SESSION['user']['username'];
+            $import_date = date('Y-m-d', strtotime($_POST['import_date']));
+            $import_by = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : 'admin_demo';
             $note = sanitizeInput($_POST['note']);
             
             // Validate dữ liệu
@@ -111,37 +116,66 @@ class InventoryController {
                 // 1. Tạo phiếu nhập
                 $query = "INSERT INTO warehouse_import 
                          (import_code, product_id, quantity, import_date, import_by, note, status) 
-                         VALUES (:import_code, :product_id, :quantity, :import_date, :import_by, :note, 'Completed')";
+                         VALUES (:import_code, :product_id, :quantity, :import_date, :import_by, :note, :status)";
                 
                 $import_code = 'PN' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                 
+                error_log("DEBUG: Import query: " . $query);
+                error_log("DEBUG: Import params: " . print_r([
+                    'import_code' => $import_code,
+                    'product_id' => $product_id,
+                    'quantity' => $quantity,
+                    'import_date' => $import_date,
+                    'import_by' => $import_by,
+                    'note' => $note,
+                    'status' => 'Completed'
+                ], true));
+                
                 $stmt = $this->db->prepare($query);
-                $stmt->bindParam(":import_code", $import_code);
-                $stmt->bindParam(":product_id", $product_id);
-                $stmt->bindParam(":quantity", $quantity);
-                $stmt->bindParam(":import_date", $import_date);
-                $stmt->bindParam(":import_by", $import_by);
-                $stmt->bindParam(":note", $note);
+                $stmt->bindValue(":import_code", $import_code);
+                $stmt->bindValue(":product_id", $product_id);
+                $stmt->bindValue(":quantity", $quantity);
+                $stmt->bindValue(":import_date", $import_date);
+                $stmt->bindValue(":import_by", $import_by);
+                $stmt->bindValue(":note", $note);
+                $stmt->bindValue(":status", 'Completed');
                 $stmt->execute();
                 
                 $import_id = $this->db->lastInsertId();
                 
-                // 2. Cập nhật tồn kho
+                // 2. Lấy tồn kho trước khi cập nhật
+                $old_stock = $this->inventory->getCurrentStock($product_id);
+                
+                // 3. Cập nhật tồn kho
                 $this->inventory->updateStock($product_id, $quantity, 'import');
                 
-                // 3. Ghi log lịch sử
-                $current_stock = $this->inventory->getCurrentStock($product_id);
+                // 4. Lấy tồn kho sau khi cập nhật
+                $new_stock = $this->inventory->getCurrentStock($product_id);
                 
+                // 5. Ghi log lịch sử
                 $query = "INSERT INTO warehouse_history 
                          (reference_code, action_type, product_id, quantity, old_stock, new_stock, action_by, note) 
-                         VALUES (:ref_code, 'Import', :product_id, :quantity, :old_stock, :new_stock, :action_by, :note)";
+                         VALUES (:ref_code, :action_type, :product_id, :quantity, :old_stock, :new_stock, :action_by, :note)";
+                
+                error_log("DEBUG: History query: " . $query);
+                error_log("DEBUG: History params: " . print_r([
+                    'ref_code' => $import_code,
+                    'action_type' => 'Import',
+                    'product_id' => $product_id,
+                    'quantity' => $quantity,
+                    'old_stock' => $old_stock,
+                    'new_stock' => $new_stock,
+                    'action_by' => $import_by,
+                    'note' => $note
+                ], true));
                 
                 $stmt = $this->db->prepare($query);
                 $stmt->bindValue(":ref_code", $import_code);
+                $stmt->bindValue(":action_type", 'Import');
                 $stmt->bindValue(":product_id", $product_id);
                 $stmt->bindValue(":quantity", $quantity);
-                $stmt->bindValue(":old_stock", $current_stock - $quantity);
-                $stmt->bindValue(":new_stock", $current_stock);
+                $stmt->bindValue(":old_stock", $old_stock);
+                $stmt->bindValue(":new_stock", $new_stock);
                 $stmt->bindValue(":action_by", $import_by);
                 $stmt->bindValue(":note", $note);
                 $stmt->execute();
@@ -159,7 +193,9 @@ class InventoryController {
             
         } catch (Exception $e) {
             error_log('Lỗi khi nhập kho: ' . $e->getMessage());
-            setFlashMessage('error', 'Có lỗi xảy ra khi nhập kho. Vui lòng thử lại.');
+            error_log('Chi tiết lỗi: ' . $e->getTraceAsString());
+            error_log('Dữ liệu POST: ' . print_r($_POST, true));
+            setFlashMessage('error', 'Có lỗi xảy ra khi nhập kho: ' . $e->getMessage());
             $_SESSION['form_data'] = $_POST;
             redirect('/controllers/InventoryController.php?action=importForm');
         }
@@ -169,12 +205,12 @@ class InventoryController {
      * Hiển thị form xuất kho
      */
     public function exportForm() {
-        // Lấy danh sách sản phẩm còn hàng
-        $products = $this->product->getAll('', '', 'active')->fetchAll();
+        // Lấy danh sách sản phẩm còn hàng (bao gồm cả sản phẩm hết hạn)
+        $products = $this->product->getAll('', '', '')->fetchAll();
         
-        // Lọc sản phẩm còn hàng (số lượng > 0)
+        // Lọc sản phẩm còn hàng (số lượng > 0) và không bị vô hiệu hóa
         $products = array_filter($products, function($product) {
-            return $product['stock_quantity'] > 0;
+            return $product['stock_quantity'] > 0 && $product['status'] != 'Disabled';
         });
         
         // Tạo mã phiếu xuất tự động
@@ -196,8 +232,8 @@ class InventoryController {
             // Lấy dữ liệu từ form
             $product_id = (int)$_POST['product_id'];
             $quantity = (int)$_POST['quantity'];
-            $export_date = $_POST['export_date'];
-            $export_by = $_SESSION['user']['username'];
+            $export_date = date('Y-m-d', strtotime($_POST['export_date']));
+            $export_by = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : 'admin_demo';
             $reason = sanitizeInput($_POST['reason']);
             $note = sanitizeInput($_POST['note']);
             
@@ -241,37 +277,42 @@ class InventoryController {
                 // 1. Tạo phiếu xuất
                 $query = "INSERT INTO warehouse_export 
                          (export_code, product_id, quantity, export_date, export_by, reason, note, status) 
-                         VALUES (:export_code, :product_id, :quantity, :export_date, :export_by, :reason, :note, 'Completed')";
+                         VALUES (:export_code, :product_id, :quantity, :export_date, :export_by, :reason, :note, :status)";
                 
                 $export_code = 'PX' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                 
                 $stmt = $this->db->prepare($query);
-                $stmt->bindParam(":export_code", $export_code);
-                $stmt->bindParam(":product_id", $product_id);
-                $stmt->bindParam(":quantity", $quantity);
-                $stmt->bindParam(":export_date", $export_date);
-                $stmt->bindParam(":export_by", $export_by);
-                $stmt->bindParam(":reason", $reason);
-                $stmt->bindParam(":note", $note);
+                $stmt->bindValue(":export_code", $export_code);
+                $stmt->bindValue(":product_id", $product_id);
+                $stmt->bindValue(":quantity", $quantity);
+                $stmt->bindValue(":export_date", $export_date);
+                $stmt->bindValue(":export_by", $export_by);
+                $stmt->bindValue(":reason", $reason);
+                $stmt->bindValue(":note", $note);
+                $stmt->bindValue(":status", 'Completed');
                 $stmt->execute();
                 
                 $export_id = $this->db->lastInsertId();
                 
-                // 2. Cập nhật tồn kho
+                // 2. Lấy tồn kho trước khi cập nhật
+                $old_stock = $this->inventory->getCurrentStock($product_id);
+                
+                // 3. Cập nhật tồn kho
                 $this->inventory->updateStock($product_id, $quantity, 'export');
                 
-                // 3. Ghi log lịch sử
+                // 4. Lấy tồn kho sau khi cập nhật
                 $new_stock = $this->inventory->getCurrentStock($product_id);
                 
                 $query = "INSERT INTO warehouse_history 
                          (reference_code, action_type, product_id, quantity, old_stock, new_stock, action_by, note) 
-                         VALUES (:ref_code, 'Export', :product_id, :quantity, :old_stock, :new_stock, :action_by, :note)";
+                         VALUES (:ref_code, :action_type, :product_id, :quantity, :old_stock, :new_stock, :action_by, :note)";
                 
                 $stmt = $this->db->prepare($query);
                 $stmt->bindValue(":ref_code", $export_code);
+                $stmt->bindValue(":action_type", 'Export');
                 $stmt->bindValue(":product_id", $product_id);
                 $stmt->bindValue(":quantity", $quantity);
-                $stmt->bindValue(":old_stock", $current_stock);
+                $stmt->bindValue(":old_stock", $old_stock);
                 $stmt->bindValue(":new_stock", $new_stock);
                 $stmt->bindValue(":action_by", $export_by);
                 $stmt->bindValue(":note", "$reason. $note");
@@ -299,35 +340,65 @@ class InventoryController {
     /**
      * Xem chi tiết giao dịch kho
      */
-    public function view($id, $type = 'import') {
-        $table = $type === 'import' ? 'warehouse_import' : 'warehouse_export';
-        $id_field = $type === 'import' ? 'import_id' : 'export_id';
-        
-        $query = "SELECT t.*, p.product_name, p.product_code 
-                 FROM $table t
-                 JOIN products p ON t.product_id = p.product_id 
-                 WHERE t.$id_field = :id";
-        
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $id);
-        $stmt->execute();
-        
-        $transaction = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$transaction) {
-            setFlashMessage('error', 'Không tìm thấy giao dịch');
-            redirect('/controllers/InventoryController.php?action=index');
-            return;
+    public function view($id, $type = 'history') {
+        // Nếu type là history, lấy từ bảng warehouse_history
+        if ($type === 'history') {
+            $query = "SELECT h.*, p.product_name, p.product_code 
+                     FROM warehouse_history h
+                     LEFT JOIN products p ON h.product_id = p.product_id 
+                     WHERE h.history_id = :id";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+            
+            $transaction = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$transaction) {
+                setFlashMessage('error', 'Không tìm thấy giao dịch');
+                redirect('/controllers/InventoryController.php?action=index');
+                return;
+            }
+            
+            // Lấy lịch sử liên quan
+            $history = $this->inventory->getInventoryHistory(
+                $transaction['product_id'], 
+                $transaction['action_type'],
+                null, 
+                null, 
+                10
+            );
+        } else {
+            // Xử lý import/export như cũ
+            $table = $type === 'import' ? 'warehouse_import' : 'warehouse_export';
+            $id_field = $type === 'import' ? 'import_id' : 'export_id';
+            
+            $query = "SELECT t.*, p.product_name, p.product_code 
+                     FROM $table t
+                     JOIN products p ON t.product_id = p.product_id 
+                     WHERE t.$id_field = :id";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+            
+            $transaction = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$transaction) {
+                setFlashMessage('error', 'Không tìm thấy giao dịch');
+                redirect('/controllers/InventoryController.php?action=index');
+                return;
+            }
+            
+            // Lấy lịch sử liên quan
+            $history = $this->inventory->getInventoryHistory(
+                $transaction['product_id'], 
+                $type === 'import' ? 'Import' : 'Export',
+                null, 
+                null, 
+                10
+            );
         }
-        
-        // Lấy lịch sử liên quan
-        $history = $this->inventory->getInventoryHistory(
-            $transaction['product_id'], 
-            $type === 'import' ? 'Import' : 'Export',
-            null, 
-            null, 
-            10
-        );
         
         require_once __DIR__ . "/../views/inventory/view.php";
     }
@@ -338,11 +409,11 @@ $controller = new InventoryController();
 $action = isset($_GET['action']) ? $_GET['action'] : 'index';
 
 // Gọi phương thức tương ứng
-if (method_exists($controller, $action)) {
-    $controller->$action();
-} else if (isset($_GET['id']) && $action === 'view') {
-    $type = isset($_GET['type']) ? $_GET['type'] : 'import';
+if (isset($_GET['id']) && $action === 'view') {
+    $type = isset($_GET['type']) ? $_GET['type'] : 'history';
     $controller->view($_GET['id'], $type);
+} else if (method_exists($controller, $action)) {
+    $controller->$action();
 } else {
     $controller->index();
 }

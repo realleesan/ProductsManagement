@@ -91,9 +91,9 @@ class Order {
             // Thêm đơn hàng vào database
             $query = "INSERT INTO " . $this->table_name . " 
                      (order_code, customer_id, order_date, total_amount, status, 
-                     payment_method, shipping_address, shipping_note, created_by) 
+                     payment_method, shipping_address, shipping_note) 
                      VALUES (:order_code, :customer_id, :order_date, :total_amount, :status, 
-                     :payment_method, :shipping_address, :shipping_note, :created_by)";
+                     :payment_method, :shipping_address, :shipping_note)";
             
             $stmt = $this->conn->prepare($query);
             
@@ -112,7 +112,6 @@ class Order {
             $stmt->bindParam(":payment_method", $this->payment_method);
             $stmt->bindParam(":shipping_address", $this->shipping_address);
             $stmt->bindParam(":shipping_note", $this->shipping_note);
-            $stmt->bindParam(":created_by", $this->created_by);
             
             if (!$stmt->execute()) {
                 throw new Exception("Lỗi khi tạo đơn hàng");
@@ -284,7 +283,7 @@ class Order {
             $this->shipping_address = $row['shipping_address'];
             $this->shipping_note = $row['shipping_note'];
             $this->cancel_reason = $row['cancel_reason'];
-            $this->created_by = $row['created_by'];
+            $this->created_by = isset($row['created_by']) ? $row['created_by'] : null;
             $this->created_at = $row['created_at'];
             $this->updated_at = $row['updated_at'];
             

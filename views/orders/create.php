@@ -4,239 +4,57 @@ $active_page = 'orders';
 require_once __DIR__ . '/../layouts/header.php'; 
 ?>
 
-<div class="page-header d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="h3 mb-0"><i class="fas fa-plus-circle text-primary me-2"></i>Tạo đơn hàng mới</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/ProductController.php?action=dashboard">Trang chủ</a></li>
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/OrderController.php?action=index">Đơn hàng</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Tạo mới</li>
+                        </ol>
+                    </nav>
     </div>
     <div>
-        <a href="/quanlysanpham/orders" class="btn btn-outline-secondary">
+                    <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=index" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i> Quay lại
         </a>
     </div>
 </div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-white py-3">
-        <h5 class="mb-0">
-            <i class="fas fa-shopping-cart me-2 text-primary"></i> Thông tin đơn hàng
-        </h5>
-    </div>
-    <div class="card-body">
-        <form id="orderForm" method="post" action="/quanlysanpham/orders/store">
-            <div class="row g-4">
-                <!-- Left Column -->
-                <div class="col-lg-8">
-                    <!-- Customer Information -->
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-light py-2">
-                            <h6 class="mb-0"><i class="fas fa-user me-2 text-primary"></i> Thông tin khách hàng</h6>
-                        </div>
-                        <div class="card-body py-3">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="customer_id" class="form-label small fw-bold">Khách hàng <span class="text-danger">*</span></label>
-                                    <select class="form-select form-select-sm" id="customer_id" name="customer_id" required>
-                                        <option value="">-- Chọn khách hàng --</option>
-                                        <?php foreach ($customers as $customer): ?>
-                                            <option value="<?= $customer['customer_id'] ?>">
-                                                <?= htmlspecialchars($customer['fullname']) ?> 
-                                                (<?= !empty($customer['phone']) ? htmlspecialchars($customer['phone']) : 'Chưa có SĐT' ?>)
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="shipping_address" class="form-label small fw-bold">Địa chỉ giao hàng <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-sm" id="shipping_address" name="shipping_address" required>
-                                </div>
-                                <div class="col-12">
-                                    <label for="shipping_note" class="form-label small fw-bold">Ghi chú giao hàng</label>
-                                    <textarea class="form-control form-control-sm" id="shipping_note" name="shipping_note" rows="2"></textarea>
-                                </div>
+            <form id="orderForm" method="post" action="<?= BASE_URL ?>/controllers/OrderController.php?action=store">
+                <div class="row">
+                    <div class="col-lg-8">
+
+                        <!-- Thông tin sản phẩm -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0"><i class="fas fa-box me-2 text-primary"></i> Sản phẩm</h5>
                             </div>
+                            <div class="card-body">
+                                <!-- Tìm kiếm và thêm sản phẩm -->
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                            <input type="text" class="form-control" id="searchProduct" placeholder="Tìm kiếm sản phẩm...">
                         </div>
                     </div>
-
-                    <!-- Products Section -->
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-light py-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0"><i class="fas fa-box me-2 text-primary"></i> Sản phẩm</h6>
-                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                                    <div class="col-md-4">
+                                        <button type="button" class="btn btn-primary w-100" id="toggleProductList">
                                     <i class="fas fa-plus me-1"></i> Thêm sản phẩm
                                 </button>
-                            </div>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th width="40" class="ps-3">#</th>
-                                            <th>Sản phẩm</th>
-                                            <th class="text-end pe-3" width="120">Đơn giá</th>
-                                            <th class="text-center" width="140">Số lượng</th>
-                                            <th class="text-end pe-3" width="140">Thành tiền</th>
-                                            <th width="50" class="pe-3"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="orderItems">
-                                        <tr id="emptyCart">
-                                            <td colspan="6" class="text-center py-5 text-muted">
-                                                <i class="fas fa-shopping-cart fa-2x d-block mb-2"></i>
-                                                Chưa có sản phẩm nào
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="p-3 border-top">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="text-muted small">
-                                        <span id="totalItems">0</span> sản phẩm
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                                        <i class="fas fa-plus me-1"></i> Thêm sản phẩm
-                                    </button>
-                                </div>
-                            </div>
-                    </div>
-
-                    <!-- Order Notes -->
-                    <div class="card border-0 shadow-sm mt-4">
-                        <div class="card-header bg-light py-2">
-                            <h6 class="mb-0"><i class="fas fa-edit me-2 text-primary"></i> Ghi chú đơn hàng</h6>
-                        </div>
-                        <div class="card-body py-3">
-                            <textarea class="form-control form-control-sm" id="note" name="note" rows="2" 
-                                placeholder="Nhập ghi chú cho đơn hàng (nếu có)"></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column -->
-                <div class="col-lg-4">
-
-                    <!-- Payment Information -->
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-light py-2">
-                            <h6 class="mb-0"><i class="fas fa-credit-card me-2 text-primary"></i> Thanh toán</h6>
-                        </div>
-                        <div class="card-body py-3">
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold mb-2">Phương thức thanh toán <span class="text-danger">*</span></label>
-                                <div class="d-grid gap-2">
-                                    <div class="form-check p-2 border rounded mb-2">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="cod" value="cod" checked>
-                                        <label class="form-check-label d-flex align-items-center" for="cod">
-                                            <i class="fas fa-money-bill-wave me-2 text-success"></i>
-                                            <div>
-                                                <div class="fw-medium">Thanh toán khi nhận hàng</div>
-                                                <small class="text-muted">(COD - Tiền mặt khi nhận hàng)</small>
-                                            </div>
-                                        </label>
-                                    </div>
-                                    <div class="form-check p-2 border rounded mb-2">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="bank_transfer" value="bank_transfer">
-                                        <label class="form-check-label d-flex align-items-center" for="bank_transfer">
-                                            <i class="fas fa-university me-2 text-primary"></i>
-                                            <div>
-                                                <div class="fw-medium">Chuyển khoản ngân hàng</div>
-                                                <small class="text-muted">(Chuyển khoản qua ngân hàng)</small>
-                                            </div>
-                                        </label>
-                                    </div>
-                                    <div class="form-check p-2 border rounded">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="momo" value="momo">
-                                        <label class="form-check-label d-flex align-items-center" for="momo">
-                                            <i class="fas fa-mobile-alt me-2" style="color: #a50064;"></i>
-                                            <div>
-                                                <div class="fw-medium">Ví điện tử MoMo</div>
-                                                <small class="text-muted">(Thanh toán qua ứng dụng MoMo)</small>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="form-check form-switch mb-3 border-top pt-3">
-                                <input class="form-check-input" type="checkbox" role="switch" id="is_paid" name="is_paid">
-                                <label class="form-check-label fw-medium" for="is_paid">Đã thanh toán</label>
-                            </div>
-                            
-                            <div class="mb-3" id="paymentDateContainer" style="display: none;">
-                                <label for="payment_date" class="form-label small fw-bold mb-1">Ngày thanh toán</label>
-                                <input type="datetime-local" class="form-control form-control-sm" id="payment_date" name="payment_date">
-                            </div>
-                            <div class="mb-3" id="paymentNoteContainer" style="display: none;">
-                                <label for="payment_note" class="form-label small fw-bold mb-1">Ghi chú thanh toán</label>
-                                <textarea class="form-control form-control-sm" id="payment_note" name="payment_note" rows="2" placeholder="Nhập ghi chú thanh toán (nếu có)"></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Order Summary -->
-                    <div class="card border-0 shadow-sm sticky-top" style="top: 1rem;">
-                        <div class="card-header bg-light py-2">
-                            <h6 class="mb-0"><i class="fas fa-receipt me-2 text-primary"></i> Tổng đơn hàng</h6>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="p-3 border-bottom">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted">Tạm tính:</span>
-                                    <span id="subtotal" class="fw-medium">0 ₫</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted">Giảm giá:</span>
-                                    <span id="discount" class="text-success">0 ₫</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted">Phí vận chuyển:</span>
-                                    <span id="shipping_fee">0 ₫</span>
-                                </div>
-                                <div class="d-flex justify-content-between fw-bold fs-5 border-top pt-2 mt-2">
-                                    <span>Thành tiền:</span>
-                                    <span id="total" class="text-primary">0 ₫</span>
-                                </div>
-                            </div>
-                            <div class="p-3">
-                                <button type="submit" class="btn btn-primary w-100 py-2 fw-medium">
-                                    <i class="fas fa-save me-2"></i> Tạo đơn hàng
-                                </button>
-                                <div class="text-muted small mt-2 text-center">
-                                    Nhấn "Tạo đơn hàng" đồng nghĩa với việc bạn đồng ý với các điều khoản và điều kiện của cửa hàng.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Hidden fields for form submission -->
-            <input type="hidden" name="order_items" id="orderItemsInput">
-            <input type="hidden" name="total_amount" id="totalAmountInput">
-        </form>
     </div>
 </div>
 
-<!-- Add Product Modal -->
-<div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Chọn sản phẩm</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" id="searchProduct" placeholder="Tìm kiếm sản phẩm...">
-                    </div>
-                </div>
-                
-                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                    <table class="table table-hover">
-                        <thead class="sticky-top bg-white" style="top: 0;">
+                                <!-- Danh sách sản phẩm để chọn -->
+                                <div id="productSelectionArea" class="mb-3" style="display: none;">
+                                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem;">
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-light sticky-top" style="top: 0;">
                             <tr>
                                 <th width="50">#</th>
                                 <th>Sản phẩm</th>
@@ -255,10 +73,10 @@ require_once __DIR__ . '/../layouts/header.php';
                                             <?php if (!empty($product['image_url'])): ?>
                                                 <img src="/quanlysanpham/uploads/products/<?= htmlspecialchars($product['image_url']) ?>" 
                                                      alt="<?= htmlspecialchars($product['product_name']) ?>" 
-                                                     class="me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                                                         class="me-2" style="width: 40px; height: 40px; object-fit: cover; border-radius: 0.25rem;">
                                             <?php else: ?>
                                                 <div class="bg-light d-flex align-items-center justify-content-center me-2" 
-                                                     style="width: 40px; height: 40px;">
+                                                                         style="width: 40px; height: 40px; border-radius: 0.25rem;">
                                                     <i class="fas fa-box text-muted"></i>
                                                 </div>
                                             <?php endif; ?>
@@ -305,15 +123,44 @@ require_once __DIR__ . '/../layouts/header.php';
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-primary" id="addSelectedProducts" data-bs-dismiss="modal">
-                    Thêm vào đơn hàng
-                </button>
+                                
+                                <!-- Bảng sản phẩm đã chọn -->
+                            <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                                <th width="50">STT</th>
+                                            <th>Sản phẩm</th>
+                                                <th class="text-end">Đơn giá</th>
+                                                <th class="text-center" width="150">Số lượng</th>
+                                                <th class="text-end">Thành tiền</th>
+                                                <th width="50"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="orderItems">
+                                        <tr id="emptyCart">
+                                                <td colspan="6" class="text-center py-4">
+                                                    <div class="text-muted">
+                                                <i class="fas fa-shopping-cart fa-2x d-block mb-2"></i>
+                                                Chưa có sản phẩm nào
+                                                    </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                        <tfoot id="orderSummary" class="d-none">
+                                            <tr>
+                                                <td colspan="3" class="text-end"><strong>Tổng cộng:</strong></td>
+                                                <td class="text-center" id="subtotalItems">0 sản phẩm</td>
+                                                <td class="text-end fw-bold" id="totalAmount">0 ₫</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
             </div>
-        </div>
-    </div>
-</div>
+                    </div>
+
+
 
 <!-- Template for cart items -->
 <template id="cartItemTemplate">
@@ -349,6 +196,73 @@ require_once __DIR__ . '/../layouts/header.php';
         </td>
     </tr>
 </template>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <!-- Thông tin khách hàng -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0"><i class="fas fa-user me-2 text-primary"></i> Thông tin khách hàng</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="customer_id" class="form-label">Khách hàng <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="customer_id" name="customer_id" required>
+                                        <option value="">-- Chọn khách hàng --</option>
+                                        <?php foreach ($customers as $customer): ?>
+                                            <option value="<?= $customer['customer_id'] ?>">
+                                                <?= htmlspecialchars($customer['fullname']) ?> 
+                                                (<?= !empty($customer['phone']) ? htmlspecialchars($customer['phone']) : 'Chưa có SĐT' ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="form-text">
+                                        <a href="<?= BASE_URL ?>?controller=CustomerController&action=create" target="_blank">
+                                            <i class="fas fa-plus"></i> Thêm khách hàng mới
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="shipping_address" class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="shipping_address" name="shipping_address" rows="3" required></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="shipping_note" class="form-label">Ghi chú giao hàng</label>
+                                    <textarea class="form-control" id="shipping_note" name="shipping_note" rows="2" placeholder="Ghi chú cho việc giao hàng (nếu có)"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="note" class="form-label">Ghi chú đơn hàng</label>
+                                    <textarea class="form-control" id="note" name="note" rows="2" placeholder="Ghi chú cho đơn hàng (nếu có)"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hành động -->
+                        <div class="card">
+                            <div class="card-body">
+                                <button type="submit" class="btn btn-primary w-100 mb-2">
+                                    <i class="fas fa-save me-1"></i> Tạo đơn hàng
+                                </button>
+                                
+                                <div class="text-muted small text-center">
+                                    Nhấn "Tạo đơn hàng" đồng nghĩa với việc bạn đồng ý với các điều khoản và điều kiện của cửa hàng.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hidden fields for form submission -->
+                <input type="hidden" name="order_items" id="orderItemsInput">
+                <input type="hidden" name="total_amount" id="totalAmountInput">
+            </form>
+        </div>
+    </div>
+</div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -360,25 +274,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const orderItemsInput = document.getElementById('orderItemsInput');
     const totalAmountInput = document.getElementById('totalAmountInput');
     const submitBtn = orderForm.querySelector('button[type="submit"]');
-    const isPaidCheckbox = document.getElementById('is_paid');
-    const paymentDateContainer = document.getElementById('paymentDateContainer');
-    const paymentNoteContainer = document.getElementById('paymentNoteContainer');
-    
     // Cart items array
     let cartItems = [];
     
-    // Toggle payment date and note fields
-    isPaidCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            paymentDateContainer.style.display = 'block';
-            paymentNoteContainer.style.display = 'block';
-            // Set current datetime as default
-            const now = new Date();
-            const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-            document.getElementById('payment_date').value = localDateTime;
+    // Toggle product selection area
+    const toggleProductListBtn = document.getElementById('toggleProductList');
+    const productSelectionArea = document.getElementById('productSelectionArea');
+    
+    toggleProductListBtn.addEventListener('click', function() {
+        if (productSelectionArea.style.display === 'none') {
+            productSelectionArea.style.display = 'block';
+            this.innerHTML = '<i class="fas fa-times me-1"></i> Đóng';
+            this.classList.remove('btn-primary');
+            this.classList.add('btn-secondary');
         } else {
-            paymentDateContainer.style.display = 'none';
-            paymentNoteContainer.style.display = 'none';
+            productSelectionArea.style.display = 'none';
+            this.innerHTML = '<i class="fas fa-plus me-1"></i> Thêm sản phẩm';
+            this.classList.remove('btn-secondary');
+            this.classList.add('btn-primary');
         }
     });
     
@@ -470,6 +383,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update UI
             updateCartUI();
             updateOrderSummary();
+            
+            // Auto-hide product selection area after adding
+            if (productSelectionArea.style.display === 'block') {
+                productSelectionArea.style.display = 'none';
+                toggleProductListBtn.innerHTML = '<i class="fas fa-plus me-1"></i> Thêm sản phẩm';
+                toggleProductListBtn.classList.remove('btn-secondary');
+                toggleProductListBtn.classList.add('btn-primary');
+            }
             
         }
         // Remove item from cart
@@ -607,10 +528,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update cart UI
     function updateCartUI() {
+        const orderSummary = document.getElementById('orderSummary');
+        
         // Show empty cart message if no items
         if (cartItems.length === 0) {
             if (emptyCartRow) {
                 emptyCartRow.style.display = '';
+            }
+            if (orderSummary) {
+                orderSummary.classList.add('d-none');
             }
             if (submitBtn) {
                 submitBtn.disabled = true;
@@ -618,6 +544,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             if (emptyCartRow) {
                 emptyCartRow.style.display = 'none';
+            }
+            if (orderSummary) {
+                orderSummary.classList.remove('d-none');
             }
             if (submitBtn) {
                 submitBtn.disabled = false;
@@ -642,16 +571,9 @@ document.addEventListener('DOMContentLoaded', function() {
             totalItems += item.quantity;
         });
         
-        // Get discount and shipping fee
-        const discount = 0; // Add discount logic if needed
-        const shippingFee = 0; // Add shipping fee logic if needed
-        const total = subtotal - discount + shippingFee;
-        
         // Update UI
-        document.getElementById('subtotal').textContent = subtotal.toLocaleString() + ' ₫';
-        document.getElementById('discount').textContent = discount.toLocaleString() + ' ₫';
-        document.getElementById('shipping_fee').textContent = shippingFee.toLocaleString() + ' ₫';
-        document.getElementById('total').textContent = total.toLocaleString() + ' ₫';
+        document.getElementById('subtotalItems').textContent = totalItems + ' sản phẩm';
+        document.getElementById('totalAmount').textContent = subtotal.toLocaleString() + ' ₫';
         
         // Update hidden fields for form submission
         updateFormData();
@@ -669,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update hidden fields
         orderItemsInput.value = JSON.stringify(orderItemsData);
-        totalAmountInput.value = document.getElementById('total').textContent.replace(/[^0-9]/g, '');
+        totalAmountInput.value = document.getElementById('totalAmount').textContent.replace(/[^0-9]/g, '');
     }
     
     // Form submission
@@ -710,6 +632,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    
 });
 </script>
 

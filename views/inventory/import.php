@@ -44,9 +44,20 @@ require_once __DIR__ . '/../layouts/header.php';
                         <option value="<?php echo $product['product_id']; ?>" 
                                 data-stock="<?php echo $product['stock_quantity']; ?>"
                                 data-price="<?php echo $product['price']; ?>"
+                                data-status="<?php echo $product['status']; ?>"
                                 <?php echo (isset($_SESSION['form_data']['product_id']) && $_SESSION['form_data']['product_id'] == $product['product_id']) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($product['product_code'] . ' - ' . $product['product_name']); ?>
                             <span class="text-muted">(Tồn: <?php echo number_format($product['stock_quantity']); ?>)</span>
+                            <span class="<?php echo $product['status'] === 'Expired' ? 'text-danger fw-bold' : ($product['status'] === 'Out of stock' ? 'text-warning fw-bold' : 'text-success'); ?>">
+                                - <?php 
+                                    switch($product['status']) {
+                                        case 'Expired': echo 'HẾT HẠN'; break;
+                                        case 'Out of stock': echo 'HẾT HÀNG'; break;
+                                        case 'Active': echo 'CÒN HẠN'; break;
+                                        default: echo strtoupper($product['status']); break;
+                                    }
+                                ?>
+                            </span>
                         </option>
                     <?php endforeach; ?>
                 </select>

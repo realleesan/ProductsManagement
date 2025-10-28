@@ -54,7 +54,7 @@ class OrderDetail {
      * Lấy chi tiết đơn hàng theo ID đơn hàng
      */
     public function getByOrderId($order_id) {
-        $query = "SELECT d.*, p.product_code, p.product_name, p.image_url 
+        $query = "SELECT d.*, p.product_code, p.product_name, p.main_image as image_url 
                  FROM " . $this->table_name . " d
                  JOIN products p ON d.product_id = p.product_id
                  WHERE d.order_id = :order_id";

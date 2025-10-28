@@ -35,7 +35,7 @@ CREATE TABLE orders (
     customer_id INT NOT NULL COMMENT 'Khách hàng đặt hàng',
     order_date DATETIME NOT NULL COMMENT 'Ngày đặt hàng',
     total_amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT 'Tổng tiền đơn hàng',
-    status ENUM('Chờ xác nhận', 'Đang xử lý', 'Đang giao', 'Hoàn tất', 'Đã hủy') DEFAULT 'Chờ xác nhận',
+    status ENUM('Chờ xác nhận', 'Đang xử lý', 'Đang giao', 'Hoàn tất', 'Đã thanh toán', 'Đã hủy') DEFAULT 'Chờ xác nhận',
     payment_method ENUM('COD', 'Bank Transfer', 'E-Wallet') NOT NULL DEFAULT 'COD',
     shipping_address TEXT NOT NULL COMMENT 'Địa chỉ giao hàng',
     shipping_note TEXT COMMENT 'Ghi chú giao hàng',

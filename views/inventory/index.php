@@ -28,11 +28,15 @@ require_once __DIR__ . '/../layouts/header.php';
     </div>
     <div class="stat-item stat-warning">
         <strong><?php echo number_format($statistics['low_stock']); ?></strong>
-        <span>Sắp hết</span>
+        <span>Sắp hết hàng</span>
     </div>
     <div class="stat-item stat-danger">
         <strong><?php echo number_format($statistics['out_of_stock']); ?></strong>
         <span>Hết hàng</span>
+    </div>
+    <div class="stat-item stat-danger">
+        <strong><?php echo number_format($statistics['expired']); ?></strong>
+        <span>Hết hạn</span>
     </div>
 </div>
 
@@ -94,7 +98,7 @@ require_once __DIR__ . '/../layouts/header.php';
                         <th>Loại</th>
                         <th>Sản phẩm</th>
                         <th class="text-end">Số lượng</th>
-                        <th class="text-end">Tồn kho</th>
+                        <th class="text-end">Tồn kho sau</th>
                         <th>Người thực hiện</th>
                         <th>Thời gian</th>
                         <th class="text-center">Thao tác</th>
@@ -103,23 +107,23 @@ require_once __DIR__ . '/../layouts/header.php';
                 <tbody>
                     <?php foreach ($transactions as $transaction): ?>
                     <tr>
-                        <td><?php echo $transaction['transaction_code']; ?></td>
+                        <td><?php echo htmlspecialchars($transaction['reference_code'] ?? ''); ?></td>
                         <td>
-                            <?php if ($transaction['type'] === 'Import'): ?>
+                            <?php if (($transaction['action_type'] ?? '') === 'Import'): ?>
                                 <span class="badge bg-success">Nhập kho</span>
                             <?php else: ?>
                                 <span class="badge bg-warning text-dark">Xuất kho</span>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?php echo htmlspecialchars($transaction['product_code'] . ' - ' . $transaction['product_name']); ?>
+                            <?php echo htmlspecialchars(($transaction['product_code'] ?? '') . ' - ' . ($transaction['product_name'] ?? '')); ?>
                         </td>
-                        <td class="text-end"><?php echo number_format($transaction['quantity']); ?></td>
-                        <td class="text-end"><?php echo number_format($transaction['current_stock']); ?></td>
-                        <td><?php echo htmlspecialchars($transaction['user_name']); ?></td>
-                        <td><?php echo date('d/m/Y H:i', strtotime($transaction['created_at'])); ?></td>
+                        <td class="text-end"><?php echo number_format($transaction['quantity'] ?? 0); ?></td>
+                        <td class="text-end"><?php echo number_format($transaction['new_stock'] ?? 0); ?></td>
+                        <td><?php echo htmlspecialchars($transaction['action_by'] ?? ''); ?></td>
+                        <td><?php echo date('d/m/Y H:i', strtotime($transaction['action_at'] ?? 'now')); ?></td>
                         <td class="text-center">
-                            <a href="?action=view&id=<?php echo $transaction['id']; ?>" class="btn btn-sm btn-info" title="Xem chi tiết">
+                            <a href="?action=view&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-info" title="Xem chi tiết">
                                 <i class="fas fa-eye"></i>
                             </a>
                         </td>

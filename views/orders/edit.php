@@ -3,20 +3,20 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="page-header d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="h3 mb-0">Chỉnh sửa đơn hàng #<?= htmlspecialchars($order['order_code']) ?></h1>
+                    <h1 class="h3 mb-0"><i class="fas fa-edit text-primary me-2"></i> Chỉnh sửa đơn hàng #<?= htmlspecialchars($order['order_code']) ?></h1>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="/quanlysanpham">Trang chủ</a></li>
-                            <li class="breadcrumb-item"><a href="/quanlysanpham/orders">Đơn hàng</a></li>
-                            <li class="breadcrumb-item"><a href="/quanlysanpham/orders/view/<?= $order['order_id'] ?>">#<?= htmlspecialchars($order['order_code']) ?></a></li>
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/ProductController.php?action=dashboard">Trang chủ</a></li>
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/OrderController.php?action=index">Đơn hàng</a></li>
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/OrderController.php?action=view&id=<?= $order['order_id'] ?>">#<?= htmlspecialchars($order['order_code']) ?></a></li>
                             <li class="breadcrumb-item active" aria-current="page">Chỉnh sửa</li>
                         </ol>
                     </nav>
                 </div>
                 <div>
-                    <a href="/quanlysanpham/orders/view/<?= $order['order_id'] ?>" class="btn btn-outline-secondary me-2">
+                    <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=view&id=<?= $order['order_id'] ?>" class="btn btn-outline-secondary me-2">
                         <i class="fas fa-times me-1"></i> Hủy
                     </a>
                     <button type="submit" form="orderForm" class="btn btn-primary">
@@ -27,7 +27,7 @@
             
             <?php include '../partials/alert.php'; ?>
             
-            <form id="orderForm" method="post" action="/quanlysanpham/orders/update/<?= $order['order_id'] ?>">
+            <form id="orderForm" method="post" action="<?= BASE_URL ?>/controllers/OrderController.php?action=update&id=<?= $order['order_id'] ?>">
                 <input type="hidden" name="_method" value="PUT">
                 
                 <div class="row">
@@ -349,7 +349,7 @@
                                     <i class="fas fa-save me-1"></i> Lưu thay đổi
                                 </button>
                                 
-                                <a href="/quanlysanpham/orders/print/<?= $order['order_id'] ?>" target="_blank" class="btn btn-outline-secondary w-100 mb-2">
+                                <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=exportInvoice&id=<?= $order['order_id'] ?>" target="_blank" class="btn btn-outline-secondary w-100 mb-2">
                                     <i class="fas fa-print me-1"></i> In hóa đơn
                                 </a>
                                 

@@ -1,30 +1,50 @@
-<?php include '../layouts/header.php'; ?>
+<?php 
+$page_title = 'Chi tiết đơn hàng';
+$active_page = 'orders';
+require_once __DIR__ . '/../layouts/header.php'; 
+?>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="page-header d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="h3 mb-0">Chi tiết đơn hàng</h1>
+                    <h1 class="h3 mb-0"><i class="fas fa-eye text-primary me-2"></i> Chi tiết đơn hàng</h1>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="/quanlysanpham">Trang chủ</a></li>
-                            <li class="breadcrumb-item"><a href="/quanlysanpham/orders">Đơn hàng</a></li>
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/ProductController.php?action=dashboard">Trang chủ</a></li>
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/OrderController.php?action=index">Đơn hàng</a></li>
                             <li class="breadcrumb-item active" aria-current="page">#<?= htmlspecialchars($order['order_code']) ?></li>
                         </ol>
                     </nav>
                 </div>
                 <div>
-                    <a href="/quanlysanpham/orders" class="btn btn-outline-secondary me-2">
+                    <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=index" class="btn btn-outline-secondary me-2">
                         <i class="fas fa-arrow-left me-1"></i> Quay lại
                     </a>
-                    <a href="/quanlysanpham/orders/print/<?= $order['order_id'] ?>" target="_blank" class="btn btn-primary">
+                    <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=exportInvoice&id=<?= $order['order_id'] ?>" target="_blank" class="btn btn-primary">
                         <i class="fas fa-print me-1"></i> In hóa đơn
                     </a>
                 </div>
             </div>
             
-            <?php include '../partials/alert.php'; ?>
+            <?php
+            // Hiển thị thông báo flash message
+            $flash = getFlashMessage();
+            if ($flash): 
+            ?>
+            <div class="alert alert-<?php echo $flash['type']; ?>">
+                <i class="fas fa-<?php 
+                    echo $flash['type'] == 'success' ? 'check-circle' : 
+                        ($flash['type'] == 'error' ? 'exclamation-circle' : 
+                        ($flash['type'] == 'warning' ? 'exclamation-triangle' : 'info-circle')); 
+                ?>"></i>
+                <span><?php echo $flash['message']; ?></span>
+                <button class="alert-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <?php endif; ?>
             
             <div class="row">
                 <div class="col-lg-8">
@@ -50,10 +70,11 @@
                                         $total_items = 0;
                                         $subtotal = 0;
                                         
-                                        foreach ($order['order_items'] as $item): 
-                                            $total_items += $item['quantity'];
-                                            $item_total = $item['quantity'] * $item['unit_price'];
-                                            $subtotal += $item_total;
+                                        if (!empty($order['order_items']) && is_array($order['order_items'])):
+                                            foreach ($order['order_items'] as $item): 
+                                                $total_items += $item['quantity'];
+                                                $item_total = $item['quantity'] * $item['unit_price'];
+                                                $subtotal += $item_total;
                                         ?>
                                             <tr>
                                                 <td><?= htmlspecialchars($item['product_code']) ?></td>
@@ -76,7 +97,17 @@
                                                 <td class="text-center"><?= $item['quantity'] ?></td>
                                                 <td class="text-end fw-bold"><?= number_format($item_total) ?> ₫</td>
                                             </tr>
-                                        <?php endforeach; ?>
+                                        <?php 
+                                            endforeach;
+                                        else:
+                                        ?>
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted py-4">
+                                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                                    <br>Không có sản phẩm nào trong đơn hàng
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
                                     </tbody>
                                     <tfoot>
                                         <tr>
@@ -98,7 +129,7 @@
                                         <?php endif; ?>
                                         <tr class="table-active">
                                             <td colspan="4" class="text-end"><strong>Thành tiền:</strong></td>
-                                            <td class="text-end fw-bold fs-5"><?= number_format($order['total_amount']) ?> ₫</td>
+                                            <td class="text-end fw-bold fs-5"><?= number_format($subtotal) ?> ₫</td>
                                         </tr>
                                         <tr>
                                             <td colspan="5" class="text-muted small">
@@ -215,61 +246,35 @@
                         </div>
                     </div>
                     
-                    <!-- Thông tin thanh toán -->
-                    <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h5 class="card-title mb-0">Thông tin thanh toán</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label">Phương thức thanh toán:</label>
-                                <div class="fw-bold">
-                                    <?php 
-                                        $payment_methods = [
-                                            'cod' => 'Thanh toán khi nhận hàng (COD)',
-                                            'bank' => 'Chuyển khoản ngân hàng',
-                                            'momo' => 'Ví điện tử MoMo',
-                                            'vnpay' => 'VNPAY',
-                                            'zalopay' => 'ZaloPay'
-                                        ];
-                                        echo $payment_methods[strtolower($order['payment_method'])] ?? $order['payment_method'];
-                                    ?>
-                                </div>
-                            </div>
-                            
-                            <?php if ($order['payment_status'] === 'paid'): ?>
-                                <div class="alert alert-success p-2 mb-0">
-                                    <i class="fas fa-check-circle me-1"></i>
-                                    Đã thanh toán
-                                    <?php if (!empty($order['payment_date'])): ?>
-                                        vào <?= date('H:i d/m/Y', strtotime($order['payment_date'])) ?>
-                                    <?php endif; ?>
-                                </div>
-                            <?php else: ?>
-                                <div class="alert alert-warning p-2 mb-0">
-                                    <i class="fas fa-clock me-1"></i>
-                                    Chưa thanh toán
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    
-                    <!-- Cập nhật trạng thái -->
+                    <!-- Trạng thái đơn hàng -->
                     <div class="card">
                         <div class="card-header bg-light">
-                            <h5 class="card-title mb-0">Cập nhật trạng thái</h5>
+                            <h5 class="card-title mb-0">Trạng thái đơn hàng</h5>
                         </div>
                         <div class="card-body">
-                            <form id="updateStatusForm" method="post" action="/quanlysanpham/orders/update-status/<?= $order['order_id'] ?>">
+                            <form id="updateStatusForm" method="post" action="<?= BASE_URL ?>/controllers/OrderController.php?action=updateStatus">
+                                <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
+                                
+                                <!-- Phương thức thanh toán -->
                                 <div class="mb-3">
-                                    <label class="form-label">Trạng thái hiện tại:</label>
-                                    <div class="alert alert-<?= 
-                                        ['Chờ xác nhận' => 'warning', 'Đang xử lý' => 'info', 'Đang giao' => 'primary', 'Hoàn tất' => 'success', 'Đã hủy' => 'danger'][$order['status']] 
-                                    ?> p-2 mb-3 text-center fw-bold">
-                                        <?= $order['status'] ?>
+                                    <label class="form-label">Phương thức thanh toán:</label>
+                                    <div class="fw-bold">
+                                        <?php 
+                                            $payment_methods = [
+                                                'cod' => 'Thanh toán khi nhận hàng (COD)',
+                                                'bank' => 'Chuyển khoản ngân hàng',
+                                                'momo' => 'Ví điện tử MoMo',
+                                                'vnpay' => 'VNPAY',
+                                                'zalopay' => 'ZaloPay'
+                                            ];
+                                            echo $payment_methods[strtolower($order['payment_method'])] ?? $order['payment_method'];
+                                        ?>
                                     </div>
-                                    
-                                    <label for="status" class="form-label">Cập nhật trạng thái:</label>
+                                </div>
+                                
+                                <!-- Trạng thái đơn hàng -->
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Trạng thái đơn hàng:</label>
                                     <select class="form-select mb-3" id="status" name="status" onchange="toggleCancelReason()">
                                         <?php 
                                             $statuses = [
@@ -277,30 +282,32 @@
                                                 'Đang xử lý' => 'Đang xử lý',
                                                 'Đang giao' => 'Đang giao',
                                                 'Hoàn tất' => 'Hoàn tất',
+                                                'Đã thanh toán' => 'Đã thanh toán',
                                                 'Đã hủy' => 'Đã hủy'
                                             ];
                                             
                                             foreach ($statuses as $value => $label):
-                                                if ($order['status'] === $value) continue; // Bỏ qua trạng thái hiện tại
-                                                echo "<option value=\"$value\">$label</option>";
+                                                $selected = ($order['status'] === $value) ? 'selected' : '';
+                                                echo "<option value=\"$value\" $selected>$label</option>";
                                             endforeach;
                                         ?>
                                     </select>
                                     
-                                    <div id="cancelReasonContainer" class="d-none">
+                                    <!-- Lý do hủy đơn hàng -->
+                                    <div id="cancelReasonContainer" class="d-none mt-3">
                                         <label for="cancel_reason" class="form-label">Lý do hủy đơn hàng:</label>
                                         <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3" required></textarea>
                                     </div>
                                 </div>
                                 
-                                <button type="submit" class="btn btn-primary w-100">
+                                <button type="submit" class="btn btn-primary w-100" onclick="return confirmUpdate()">
                                     <i class="fas fa-save me-1"></i> Cập nhật
                                 </button>
                             </form>
                             
                             <?php if ($order['status'] === 'Chờ xác nhận'): ?>
                                 <hr>
-                                <form method="post" action="/quanlysanpham/orders/delete/<?= $order['order_id'] ?>" 
+                                <form method="post" action="<?= BASE_URL ?>/controllers/OrderController.php?action=delete&id=<?= $order['order_id'] ?>" 
                                       onsubmit="return confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')">
                                     <button type="submit" class="btn btn-outline-danger w-100">
                                         <i class="fas fa-trash me-1"></i> Xóa đơn hàng
@@ -342,48 +349,85 @@ if (form) {
         
         fetch(url, {
             method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             body: formData
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showAlert('success', data.message);
+                // Hiển thị thông báo thành công
+                showAlert(data.message, 'success');
                 // Làm mới trang sau 1.5 giây
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
             } else {
-                showAlert('danger', data.message || 'Có lỗi xảy ra');
+                showAlert(data.message || 'Có lỗi xảy ra', 'danger');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showAlert('danger', 'Có lỗi xảy ra khi kết nối đến máy chủ');
+            showAlert('Có lỗi xảy ra khi kết nối đến máy chủ', 'danger');
         });
     });
 }
 
+// Hàm xác nhận cập nhật
+function confirmUpdate() {
+    const status = document.getElementById('status').value;
+    const currentStatus = '<?= $order['status'] ?>';
+    
+    if (status === currentStatus) {
+        alert('Trạng thái hiện tại đã được chọn. Vui lòng chọn trạng thái khác để cập nhật.');
+        return false;
+    }
+    
+    return confirm('Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng?');
+}
+
 // Hàm hiển thị thông báo
-function showAlert(type, message) {
+function showAlert(message, type = 'success') {
+    // Xóa thông báo cũ nếu có
+    const existingAlert = document.querySelector('.alert.position-fixed');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+    
     const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
-    alertDiv.style.zIndex = '9999';
-    alertDiv.role = 'alert';
+    alertDiv.className = `alert alert-${type} position-fixed`;
+    alertDiv.style.cssText = `
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
+        z-index: 9999 !important;
+        max-width: 400px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        margin: 0 !important;
+    `;
     alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
         ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
     `;
     
     document.body.appendChild(alertDiv);
     
     // Tự động ẩn thông báo sau 5 giây
     setTimeout(() => {
-        alertDiv.classList.remove('show');
-        setTimeout(() => {
-            document.body.removeChild(alertDiv);
-        }, 150);
+        if (alertDiv.parentNode) {
+            alertDiv.style.opacity = '0';
+            alertDiv.style.transition = 'opacity 0.3s';
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    document.body.removeChild(alertDiv);
+                }
+            }, 300);
+        }
     }, 5000);
 }
+
 </script>
 
-<?php include '../layouts/footer.php'; ?>
+<?php require_once __DIR__ . '/../layouts/footer.php'; ?>

@@ -36,16 +36,17 @@ class Inventory {
         
         $query = "UPDATE products SET stock_quantity = :stock_quantity, 
                   status = CASE 
-                    WHEN stock_quantity <= 0 AND :new_stock > 0 THEN 'Active' 
-                    WHEN stock_quantity > 0 AND :new_stock <= 0 THEN 'Out of stock' 
+                    WHEN stock_quantity <= 0 AND :new_stock_1 > 0 THEN 'Active' 
+                    WHEN stock_quantity > 0 AND :new_stock_2 <= 0 THEN 'Out of stock' 
                     ELSE status 
                   END 
                   WHERE product_id = :product_id";
                   
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":stock_quantity", $new_stock);
-        $stmt->bindParam(":new_stock", $new_stock);
-        $stmt->bindParam(":product_id", $product_id);
+        $stmt->bindValue(":stock_quantity", $new_stock);
+        $stmt->bindValue(":new_stock_1", $new_stock);
+        $stmt->bindValue(":new_stock_2", $new_stock);
+        $stmt->bindValue(":product_id", $product_id);
         
         return $stmt->execute();
     }
@@ -157,8 +158,8 @@ class Inventory {
         $stmt = $this->conn->query($query);
         $stats['total_products'] = (int)$stmt->fetchColumn();
         
-        // Tổng tồn kho
-        $query = "SELECT SUM(stock_quantity) as total FROM products WHERE status = 'Active'";
+        // Tổng tồn kho (bao gồm cả sản phẩm hết hạn)
+        $query = "SELECT SUM(stock_quantity) as total FROM products WHERE status IN ('Active', 'Expired')";
         $stmt = $this->conn->query($query);
         $stats['total_stock'] = (int)$stmt->fetchColumn();
         
@@ -167,10 +168,15 @@ class Inventory {
         $stmt = $this->conn->query($query);
         $stats['out_of_stock'] = (int)$stmt->fetchColumn();
         
-        // Sản phẩm sắp hết hàng (dưới 10 sản phẩm)
-        $query = "SELECT COUNT(*) as total FROM products WHERE stock_quantity > 0 AND stock_quantity <= 10 AND status = 'Active'";
+        // Sản phẩm sắp hết hàng (dưới 20 sản phẩm, bao gồm cả sản phẩm hết hạn)
+        $query = "SELECT COUNT(*) as total FROM products WHERE stock_quantity > 0 AND stock_quantity <= 20 AND status IN ('Active', 'Expired')";
         $stmt = $this->conn->query($query);
         $stats['low_stock'] = (int)$stmt->fetchColumn();
+        
+        // Sản phẩm hết hạn
+        $query = "SELECT COUNT(*) as total FROM products WHERE status = 'Expired'";
+        $stmt = $this->conn->query($query);
+        $stats['expired'] = (int)$stmt->fetchColumn();
         
         // Sản phẩm sắp hết hạn (trong vòng 30 ngày tới)
         $query = "SELECT COUNT(*) as total FROM products 
