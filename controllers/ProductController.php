@@ -321,18 +321,18 @@ class ProductController {
             return;
         }
         
-        // Xóa ảnh
-        $this->deleteProductImages($id);
-        
-        // Xóa sản phẩm
+        // Xóa sản phẩm (chỉ xóa ảnh sau khi xóa sản phẩm thành công)
         $this->product->product_id = $id;
         if ($this->product->delete()) {
+            // Xóa ảnh liên quan sau khi xóa bản ghi sản phẩm thành công
+            $this->deleteProductImages($id);
             setFlashMessage('success', 'Xóa sản phẩm thành công');
         } else {
-            setFlashMessage('error', 'Có lỗi xảy ra khi xóa sản phẩm');
+            $error = !empty($this->product->last_error) ? $this->product->last_error : 'Có lỗi xảy ra khi xóa sản phẩm';
+            setFlashMessage('error', $error);
         }
         
-        redirect('/controllers/ProductController.php?action=index');
+        redirect('?controller=ProductController&action=index');
     }
     
     /**

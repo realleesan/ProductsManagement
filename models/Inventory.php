@@ -27,9 +27,13 @@ class Inventory {
      */
     public function updateStock($product_id, $quantity_change, $type = 'import') {
         $current_stock = $this->getCurrentStock($product_id);
-        $new_stock = ($type === 'import') 
-            ? $current_stock + $quantity_change 
-            : $current_stock - $quantity_change;
+        
+        // Xử lý số lượng thay đổi (có thể âm hoặc dương)
+        if ($type === 'import') {
+            $new_stock = $current_stock + $quantity_change;
+        } else {
+            $new_stock = $current_stock - $quantity_change;
+        }
             
         // Đảm bảo tồn kho không âm
         $new_stock = max(0, $new_stock);

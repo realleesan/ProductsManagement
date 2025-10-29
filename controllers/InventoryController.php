@@ -256,7 +256,7 @@ class InventoryController {
             error_log('Dữ liệu POST: ' . print_r($_POST, true));
             setFlashMessage('error', 'Có lỗi xảy ra khi nhập kho: ' . $e->getMessage());
             $_SESSION['form_data'] = $_POST;
-            redirect('/controllers/InventoryController.php?action=importForm');
+            redirect('?controller=InventoryController&action=importForm');
         }
     }
     
@@ -392,7 +392,7 @@ class InventoryController {
             error_log('Lỗi khi xuất kho: ' . $e->getMessage());
             setFlashMessage('error', 'Có lỗi xảy ra khi xuất kho. Vui lòng thử lại.');
             $_SESSION['form_data'] = $_POST;
-            redirect('/controllers/InventoryController.php?action=exportForm');
+            redirect('?controller=InventoryController&action=exportForm');
         }
     }
     
@@ -495,10 +495,10 @@ class InventoryController {
 
             // Hoàn tác tồn kho theo loại giao dịch
             if ($action_type === 'Import') {
-                // Xóa nhập -> trừ tồn kho
+                // Xóa nhập -> trừ tồn kho (dùng export để trừ)
                 $this->inventory->updateStock($product_id, $quantity, 'export');
             } else {
-                // Xóa xuất -> cộng tồn kho
+                // Xóa xuất -> cộng tồn kho (dùng import để cộng)
                 $this->inventory->updateStock($product_id, $quantity, 'import');
             }
 

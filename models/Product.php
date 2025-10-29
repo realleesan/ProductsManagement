@@ -9,6 +9,7 @@ class Product {
     private $table_name = "products";
     
     // Thuộc tính
+    public $last_error;
     public $product_id;
     public $product_code;
     public $product_name;
@@ -445,10 +446,30 @@ class Product {
      * Xóa sản phẩm
      */
     public function delete() {
-        $query = "DELETE FROM " . $this->table_name . " WHERE product_id = :id";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id', $this->product_id, PDO::PARAM_INT);
-        return $stmt->execute();
+        // Kiểm tra ràng buộc khóa ngoại: có đơn hàng chi tiết tham chiếu sản phẩm không
+        try {
+            $checkQuery = "SELECT COUNT(*) as cnt FROM order_details WHERE product_id = :id";
+            $checkStmt = $this->conn->prepare($checkQuery);
+            $checkStmt->bindParam(':id', $this->product_id, PDO::PARAM_INT);
+            $checkStmt->execute();
+            $row = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            if (!empty($row) && (int)$row['cnt'] > 0) {
+                $this->last_error = "Không thể xóa sản phẩm vì đang được sử dụng trong đơn hàng.";
+                return false;
+            }
+
+            $query = "DELETE FROM " . $this->table_name . " WHERE product_id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $this->product_id, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            // Bắt lỗi ràng buộc khóa ngoại và trả về thông báo rõ ràng
+            if ($e->getCode() === '23000') {
+                $this->last_error = "Không thể xóa sản phẩm vì đang được sử dụng trong đơn hàng.";
+                return false;
+            }
+            throw $e;
+        }
     }
     
     /**

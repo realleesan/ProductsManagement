@@ -7,10 +7,10 @@ require_once __DIR__ . '/../layouts/header.php';
 <div class="page-header">
     <h1><i class="fas fa-warehouse"></i> Quản lý kho hàng</h1>
     <div>
-        <a href="?action=importForm" class="btn btn-success">
+        <a href="?controller=InventoryController&action=importForm" class="btn btn-success">
             <i class="fas fa-plus-circle"></i> Nhập kho
         </a>
-        <a href="?action=exportForm" class="btn btn-warning">
+        <a href="?controller=InventoryController&action=exportForm" class="btn btn-warning">
             <i class="fas fa-minus-circle"></i> Xuất kho
         </a>
     </div>
@@ -124,13 +124,13 @@ require_once __DIR__ . '/../layouts/header.php';
                         <td><?php echo date('d/m/Y H:i', strtotime($transaction['action_at'] ?? 'now')); ?></td>
                         <td class="text-center">
                             <div class="action-buttons">
-                                <a href="?action=view&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-info" title="Xem chi tiết">
+                                <a href="?controller=InventoryController&action=view&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-info" title="Xem chi tiết">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="?action=edit&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-warning" title="Sửa">
+                                <a href="?controller=InventoryController&action=edit&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-warning" title="Sửa">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="?action=delete&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-danger" title="Xóa" onclick="return confirm('Bạn có chắc chắn muốn xóa giao dịch này? Tồn kho sẽ được điều chỉnh lại.');">
+                                <a href="?controller=InventoryController&action=delete&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-danger" title="Xóa" onclick="return confirm('Bạn có chắc chắn muốn xóa giao dịch này? Tồn kho sẽ được điều chỉnh lại.');">
                                     <i class="fas fa-trash"></i>
                                 </a>
                             </div>
