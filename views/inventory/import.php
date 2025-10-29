@@ -45,6 +45,8 @@ require_once __DIR__ . '/../layouts/header.php';
                                 data-stock="<?php echo $product['stock_quantity']; ?>"
                                 data-price="<?php echo $product['price']; ?>"
                                 data-status="<?php echo $product['status']; ?>"
+                                data-manufacture="<?php echo $product['manufacture_date']; ?>"
+                                data-expiry="<?php echo $product['expiry_date']; ?>"
                                 <?php echo (isset($_SESSION['form_data']['product_id']) && $_SESSION['form_data']['product_id'] == $product['product_id']) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($product['product_code'] . ' - ' . $product['product_name']); ?>
                             <span class="text-muted">(Tồn: <?php echo number_format($product['stock_quantity']); ?>)</span>
@@ -58,9 +60,16 @@ require_once __DIR__ . '/../layouts/header.php';
                                     }
                                 ?>
                             </span>
+                            <?php if ($product['status'] === 'Expired'): ?>
+                                <span class="text-muted small">(HSD: <?php echo date('d/m/Y', strtotime($product['expiry_date'])); ?>)</span>
+                            <?php endif; ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <div id="product-warning" class="alert alert-warning mt-2" style="display: none;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Cảnh báo:</strong> Sản phẩm này đã hết hạn. Bạn sẽ cần cập nhật thông tin ngày sản xuất và hạn sử dụng mới để tiếp tục nhập kho.
+                </div>
             </div>
 
             <div class="row g-3 mb-4">
@@ -79,6 +88,61 @@ require_once __DIR__ . '/../layouts/header.php';
                     <div class="form-group">
                         <label class="form-label fw-medium">Tồn kho sau nhập</label>
                         <div class="form-control form-control-lg bg-light" id="stock_after">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thông tin cập nhật cho sản phẩm hết hạn -->
+            <div id="expired-product-info" class="card border-warning mb-4" style="display: none;">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Sản phẩm hết hạn - Cần cập nhật thông tin</strong>
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Lưu ý:</strong> Sản phẩm này đã hết hạn. Vui lòng cập nhật thông tin ngày sản xuất và hạn sử dụng mới để tiếp tục nhập kho.
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="new_manufacture_date" class="form-label fw-medium">
+                                <i class="fas fa-calendar-plus me-1"></i>
+                                Ngày sản xuất mới <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control form-control-lg" id="new_manufacture_date" name="new_manufacture_date" 
+                                   value="<?php echo isset($_SESSION['form_data']['new_manufacture_date']) ? $_SESSION['form_data']['new_manufacture_date'] : date('Y-m-d'); ?>"
+                                   max="<?php echo date('Y-m-d'); ?>">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Ngày sản xuất của lô hàng mới (không được vượt quá ngày hiện tại)
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="new_expiry_date" class="form-label fw-medium">
+                                <i class="fas fa-calendar-times me-1"></i>
+                                Ngày hết hạn mới <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control form-control-lg" id="new_expiry_date" name="new_expiry_date" 
+                                   value="<?php echo isset($_SESSION['form_data']['new_expiry_date']) ? $_SESSION['form_data']['new_expiry_date'] : ''; ?>"
+                                   min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Ngày hết hạn của lô hàng mới (phải sau ngày sản xuất)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="confirm_expired_update" name="confirm_expired_update">
+                            <label class="form-check-label fw-medium" for="confirm_expired_update">
+                                <i class="fas fa-check-circle me-1"></i>
+                                Tôi xác nhận đã kiểm tra và cập nhật đúng thông tin ngày sản xuất, hạn sử dụng cho sản phẩm này
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -119,10 +183,92 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Lắng nghe sự kiện thay đổi sản phẩm
-    productSelect.addEventListener('change', updateStockAfter);
+    productSelect.addEventListener('change', function() {
+        updateStockAfter();
+        toggleExpiredProductInfo();
+        toggleProductWarning();
+    });
+    
+    // Hiển thị/ẩn cảnh báo sản phẩm hết hạn
+    function toggleProductWarning() {
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+        const warningDiv = document.getElementById('product-warning');
+        
+        if (selectedOption && selectedOption.value && selectedOption.dataset.status === 'Expired') {
+            warningDiv.style.display = 'block';
+        } else {
+            warningDiv.style.display = 'none';
+        }
+    }
     
     // Lắng nghe sự kiện thay đổi số lượng
     quantityInput.addEventListener('input', updateStockAfter);
+    
+    // Hiển thị/ẩn form cập nhật thông tin cho sản phẩm hết hạn
+    function toggleExpiredProductInfo() {
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+        const expiredInfo = document.getElementById('expired-product-info');
+        const newManufactureDate = document.getElementById('new_manufacture_date');
+        const newExpiryDate = document.getElementById('new_expiry_date');
+        const confirmCheckbox = document.getElementById('confirm_expired_update');
+        
+        if (!expiredInfo || !newManufactureDate || !newExpiryDate) {
+            return;
+        }
+        
+        // Chỉ hiện khi chọn sản phẩm hết hạn
+        if (selectedOption && selectedOption.value && selectedOption.dataset.status === 'Expired') {
+            expiredInfo.style.display = 'block';
+            newManufactureDate.required = true;
+            newExpiryDate.required = true;
+            confirmCheckbox.required = true;
+            
+            // Đặt giá trị mặc định cho ngày sản xuất (hôm nay)
+            if (!newManufactureDate.value) {
+                newManufactureDate.value = new Date().toISOString().split('T')[0];
+            }
+            
+            // Đặt giá trị mặc định cho ngày hết hạn (30 ngày sau)
+            if (!newExpiryDate.value) {
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 30);
+                newExpiryDate.value = futureDate.toISOString().split('T')[0];
+            }
+            
+            // Cập nhật min/max cho các input date
+            newManufactureDate.max = new Date().toISOString().split('T')[0];
+            newExpiryDate.min = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            
+        } else {
+            expiredInfo.style.display = 'none';
+            newManufactureDate.required = false;
+            newExpiryDate.required = false;
+            confirmCheckbox.required = false;
+            
+            // Reset giá trị
+            newManufactureDate.value = '';
+            newExpiryDate.value = '';
+            confirmCheckbox.checked = false;
+        }
+    }
+    
+    // Xử lý thay đổi ngày sản xuất
+    document.getElementById('new_manufacture_date').addEventListener('change', function() {
+        const manufactureDate = new Date(this.value);
+        const expiryDateInput = document.getElementById('new_expiry_date');
+        
+        if (manufactureDate) {
+            // Đặt min cho ngày hết hạn là ngày sau ngày sản xuất
+            const minExpiryDate = new Date(manufactureDate);
+            minExpiryDate.setDate(minExpiryDate.getDate() + 1);
+            expiryDateInput.min = minExpiryDate.toISOString().split('T')[0];
+            
+            // Nếu ngày hết hạn hiện tại nhỏ hơn ngày sản xuất, reset nó
+            if (expiryDateInput.value && new Date(expiryDateInput.value) <= manufactureDate) {
+                expiryDateInput.value = '';
+            }
+        }
+    });
     
     // Khởi tạo giá trị ban đầu
     updateStockAfter();

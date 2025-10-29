@@ -50,7 +50,12 @@ if (!isset($_SESSION['user'])) {
  * Hàm helper để redirect
  */
 function redirect($url) {
-    header("Location: " . BASE_URL . $url);
+    // Nếu URL đã bắt đầu bằng / thì không cần thêm BASE_URL
+    if (strpos($url, '/') === 0) {
+        header("Location: " . $url);
+    } else {
+        header("Location: " . BASE_URL . $url);
+    }
     exit();
 }
 

@@ -46,6 +46,8 @@ CREATE TABLE orders (
     completed_at DATETIME COMMENT 'Thời điểm hoàn tất',
     cancelled_by VARCHAR(50) COMMENT 'Người hủy đơn',
     cancelled_at DATETIME COMMENT 'Thời điểm hủy',
+    paid_by VARCHAR(50) COMMENT 'Người thanh toán đơn',
+    paid_at DATETIME COMMENT 'Thời điểm thanh toán',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     

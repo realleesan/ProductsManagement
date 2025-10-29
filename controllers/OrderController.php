@@ -10,6 +10,7 @@ require_once __DIR__ . '/../models/OrderDetail.php';
 require_once __DIR__ . '/../models/Customer.php';
 require_once __DIR__ . '/../models/Product.php';
 
+
 class OrderController {
     private $db;
 
@@ -25,6 +26,7 @@ class OrderController {
     public function __construct() {
         $database = new Database();
         $this->db = $database->getConnection();
+        
         $this->order = new Order($this->db);
         $this->customer = new Customer($this->db);
         $this->product = new Product($this->db);
@@ -80,8 +82,13 @@ class OrderController {
      * Xử lý tạo đơn hàng mới
      */
     public function store() {
+        error_log("OrderController::store() called");
+        error_log("Request method: " . $_SERVER['REQUEST_METHOD']);
+        error_log("POST data: " . print_r($_POST, true));
+        
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('/controllers/OrderController.php?action=index');
+            error_log("Not POST request, redirecting...");
+            redirect('?controller=OrderController&action=index');
             return;
         }
         
@@ -90,26 +97,31 @@ class OrderController {
             $this->order->customer_id = (int)$_POST['customer_id'];
             $this->order->shipping_address = sanitizeInput($_POST['shipping_address']);
             $this->order->shipping_note = isset($_POST['shipping_note']) ? sanitizeInput($_POST['shipping_note']) : '';
-            $this->order->payment_method = sanitizeInput($_POST['payment_method']);
+            $this->order->payment_method = isset($_POST['payment_method']) ? sanitizeInput($_POST['payment_method']) : 'COD';
             $this->order->status = 'Chờ xác nhận'; // Mặc định trạng thái khi tạo mới
             
-            // Xử lý danh sách sản phẩm
+            // Xử lý danh sách sản phẩm từ JSON
             $order_items = [];
             $total_amount = 0;
             
-            if (isset($_POST['product_id']) && is_array($_POST['product_id'])) {
-                foreach ($_POST['product_id'] as $index => $product_id) {
-                    $quantity = (int)$_POST['quantity'][$index];
+            if (isset($_POST['order_items']) && !empty($_POST['order_items'])) {
+                $order_items_data = json_decode($_POST['order_items'], true);
+                
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new Exception("Dữ liệu sản phẩm không hợp lệ");
+                }
+                
+                foreach ($order_items_data as $item) {
                     $product = new Product($this->db);
                     
-                    if ($product->getById($product_id) && $quantity > 0) {
+                    if ($product->getById($item['product_id']) && $item['quantity'] > 0) {
                         $order_items[] = [
-                            'product_id' => $product_id,
-                            'quantity' => $quantity,
-                            'unit_price' => $product->price,
+                            'product_id' => $item['product_id'],
+                            'quantity' => $item['quantity'],
+                            'unit_price' => $item['unit_price'],
                             'product_name' => $product->product_name
                         ];
-                        $total_amount += $product->price * $quantity;
+                        $total_amount += $item['unit_price'] * $item['quantity'];
                     }
                 }
             }
@@ -126,7 +138,7 @@ class OrderController {
             
             if ($order_id) {
                 setFlashMessage('success', 'Tạo đơn hàng thành công');
-                redirect('/controllers/OrderController.php?action=view&id=' . $order_id);
+                redirect('?controller=OrderController&action=view&id=' . $order_id);
             } else {
                 throw new Exception("Có lỗi xảy ra khi tạo đơn hàng");
             }
@@ -134,7 +146,7 @@ class OrderController {
         } catch (Exception $e) {
             setFlashMessage('error', 'Lỗi: ' . $e->getMessage());
             $_SESSION['form_data'] = $_POST;
-            redirect('/controllers/OrderController.php?action=create');
+            redirect('?controller=OrderController&action=create');
         }
     }
     
@@ -146,7 +158,7 @@ class OrderController {
         
         if (!$this->order->getById($id)) {
             setFlashMessage('error', 'Không tìm thấy đơn hàng');
-            redirect('/controllers/OrderController.php?action=index');
+            redirect('?controller=OrderController&action=index');
             return;
         }
         
@@ -193,7 +205,7 @@ class OrderController {
                 echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ']);
                 exit;
             }
-            redirect('/controllers/OrderController.php?action=index');
+            redirect('?controller=OrderController&action=index');
             return;
         }
         
@@ -206,6 +218,9 @@ class OrderController {
                 throw new Exception("Không tìm thấy đơn hàng");
             }
             
+            // Lưu trạng thái cũ để kiểm tra
+            $old_status = $this->order->status;
+            
             // Cập nhật trạng thái
             $this->order->status = $new_status;
             
@@ -215,6 +230,22 @@ class OrderController {
             }
             
             if ($this->order->updateStatus($order_id, $new_status, $cancel_reason)) {
+                // Nếu chuyển sang trạng thái "Đã thanh toán", trừ tồn kho
+                if ($new_status === 'Đã thanh toán' && $old_status !== 'Đã thanh toán') {
+                    // Lấy danh sách sản phẩm trong đơn hàng
+                    $orderDetail = new OrderDetail($this->db);
+                    $order_items = $orderDetail->getByOrderId($order_id);
+                    
+                    // Trừ tồn kho cho từng sản phẩm
+                    foreach ($order_items as $item) {
+                        $product_id = $item['product_id'];
+                        $quantity = $item['quantity'];
+                        
+                        // Trừ tồn kho (số âm để trừ)
+                        $this->product->updateStock($product_id, -$quantity, "Đơn hàng #{$this->order->order_code} - Đã thanh toán");
+                    }
+                }
+                
                 // Kiểm tra nếu là AJAX request
                 if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
                     header('Content-Type: application/json');
@@ -240,58 +271,10 @@ class OrderController {
         
         // Chỉ redirect nếu không phải AJAX request
         if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] !== 'XMLHttpRequest') {
-            redirect('/controllers/OrderController.php?action=view&id=' . $order_id);
+            redirect('?controller=OrderController&action=view&id=' . $order_id);
         }
     }
     
-    /**
-     * Xuất hóa đơn
-     */
-    public function exportInvoice() {
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-        
-        if (!$this->order->getById($id)) {
-            setFlashMessage('error', 'Không tìm thấy đơn hàng');
-            redirect('/controllers/OrderController.php?action=index');
-            return;
-        }
-        
-        // Lấy thông tin khách hàng
-        $customer = new Customer($this->db);
-        $customer->getById($this->order->customer_id);
-        
-        // Lấy chi tiết đơn hàng
-        $orderDetail = new OrderDetail($this->db);
-        $order_items = $orderDetail->getByOrderId($id);
-        
-        // Tạo nội dung hóa đơn
-        ob_start();
-        require_once __DIR__ . '/../views/orders/export.php';
-        $content = ob_get_clean();
-        
-        // Tạo file PDF
-        require_once __DIR__ . '/../lib/tcpdf/tcpdf.php';
-        
-        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-        
-        // Thiết lập thông tin tài liệu
-        $pdf->SetCreator(PDF_CREATOR);
-        $pdf->SetAuthor('Hệ thống quản lý bán hàng');
-        $pdf->SetTitle('Hóa đơn #' . $this->order->order_code);
-        
-        // Xóa header và footer mặc định
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
-        
-        // Thêm một trang mới
-        $pdf->AddPage();
-        
-        // Ghi nội dung
-        $pdf->writeHTML($content, true, false, true, false, '');
-        
-        // Đóng và xuất file PDF
-        $pdf->Output('hoadon_' . $this->order->order_code . '.pdf', 'D');
-    }
     
     /**
      * Xóa đơn hàng (chỉ xóa khi ở trạng thái chờ xác nhận)
@@ -319,18 +302,20 @@ class OrderController {
             setFlashMessage('error', 'Lỗi: ' . $e->getMessage());
         }
         
-        redirect('/controllers/OrderController.php?action=index');
+        redirect('?controller=OrderController&action=index');
     }
 }
 
-// Xử lý routing
-$controller = new OrderController();
-$action = isset($_GET['action']) ? $_GET['action'] : 'index';
+// Xử lý routing - chỉ chạy khi được gọi trực tiếp
+if (basename($_SERVER['PHP_SELF']) === 'OrderController.php') {
+    $controller = new OrderController();
+    $action = isset($_GET['action']) ? $_GET['action'] : 'index';
 
-// Kiểm tra xem action có tồn tại không
-if (method_exists($controller, $action)) {
-    $controller->$action();
-} else {
-    // Nếu không tìm thấy action, chuyển hướng về trang chủ
-    redirect('/controllers/OrderController.php');
+    // Kiểm tra xem action có tồn tại không
+    if (method_exists($controller, $action)) {
+        $controller->$action();
+    } else {
+        // Nếu không tìm thấy action, chuyển hướng về trang chủ
+        redirect('?controller=OrderController&action=index');
+    }
 }

@@ -69,7 +69,7 @@ class ProductController {
      */
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('/controllers/ProductController.php?action=index');
+            redirect('?controller=ProductController&action=index');
             return;
         }
         
@@ -90,7 +90,7 @@ class ProductController {
             if ($this->product->codeExists($this->product->product_code)) {
                 setFlashMessage('error', 'Mã sản phẩm đã tồn tại trong hệ thống');
                 $_SESSION['form_data'] = $_POST;
-                redirect('/controllers/ProductController.php?action=create');
+                redirect('?controller=ProductController&action=create');
                 return;
             }
             
@@ -99,7 +99,7 @@ class ProductController {
             if (!empty($errors)) {
                 setFlashMessage('error', implode('<br>', $errors));
                 $_SESSION['form_data'] = $_POST;
-                redirect('/controllers/ProductController.php?action=create');
+                redirect('?controller=ProductController&action=create');
                 return;
             }
             
@@ -110,7 +110,7 @@ class ProductController {
             if (empty($this->product->main_image)) {
                 setFlashMessage('error', 'Vui lòng chọn ảnh chính cho sản phẩm');
                 $_SESSION['form_data'] = $_POST;
-                redirect('/controllers/ProductController.php?action=create');
+                redirect('?controller=ProductController&action=create');
                 return;
             }
             
@@ -121,11 +121,11 @@ class ProductController {
                     $message .= ' (' . $uploadResult['skipped_gallery'] . ' ảnh phụ vượt quá giới hạn và không được tải lên)';
                 }
                 setFlashMessage('success', $message);
-                redirect('/controllers/ProductController.php?action=index');
+                redirect('?controller=ProductController&action=index');
             } else {
                 setFlashMessage('error', 'Có lỗi xảy ra khi thêm sản phẩm');
                 $_SESSION['form_data'] = $_POST;
-                redirect('/controllers/ProductController.php?action=create');
+                redirect('?controller=ProductController&action=create');
             }
             
         } catch (Exception $e) {
@@ -142,7 +142,7 @@ class ProductController {
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         if (!$this->product->getById($id)) {
             setFlashMessage('error', 'Không tìm thấy sản phẩm');
-            redirect('/controllers/ProductController.php?action=index');
+            redirect('?controller=ProductController&action=index');
             return;
         }
 
@@ -156,7 +156,7 @@ class ProductController {
      */
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('/controllers/ProductController.php?action=index');
+            redirect('?controller=ProductController&action=index');
             return;
         }
         
@@ -166,7 +166,7 @@ class ProductController {
             // Lấy thông tin sản phẩm hiện tại
             if (!$this->product->getById($id)) {
                 setFlashMessage('error', 'Không tìm thấy sản phẩm');
-                redirect('/controllers/ProductController.php?action=index');
+                redirect('?controller=ProductController&action=index');
                 return;
             }
             
@@ -189,7 +189,7 @@ class ProductController {
             // Kiểm tra mã sản phẩm
             if ($this->product->codeExists($this->product->product_code, $id)) {
                 setFlashMessage('error', 'Mã sản phẩm đã tồn tại trong hệ thống');
-                redirect('/controllers/ProductController.php?action=edit&id=' . $id);
+                redirect('?controller=ProductController&action=edit&id=' . $id);
                 return;
             }
             
@@ -197,7 +197,7 @@ class ProductController {
             $errors = $this->product->validate();
             if (!empty($errors)) {
                 setFlashMessage('error', implode('<br>', $errors));
-                redirect('/controllers/ProductController.php?action=edit&id=' . $id);
+                redirect('?controller=ProductController&action=edit&id=' . $id);
                 return;
             }
             
@@ -232,7 +232,7 @@ class ProductController {
             
             if (!$hasMainImage && !$hasGalleryImages) {
                 setFlashMessage('error', 'Sản phẩm phải có ít nhất một ảnh (ảnh chính hoặc ảnh phụ)');
-                redirect('/controllers/ProductController.php?action=edit&id=' . $id);
+                redirect('?controller=ProductController&action=edit&id=' . $id);
                 return;
             }
             
@@ -286,7 +286,7 @@ class ProductController {
                 }
 
                 setFlashMessage('success', $message);
-                redirect('/controllers/ProductController.php?action=index');
+                redirect('?controller=ProductController&action=index');
             } else {
                 // Rollback: Delete any newly uploaded files if update failed
                 if (!empty($uploadResult['main_image']) && $uploadResult['replaced_main_image']) {
@@ -300,7 +300,7 @@ class ProductController {
                 }
                 
                 setFlashMessage('error', 'Có lỗi xảy ra khi cập nhật sản phẩm');
-                redirect('/controllers/ProductController.php?action=edit&id=' . $id);
+                redirect('?controller=ProductController&action=edit&id=' . $id);
             }
             
         } catch (Exception $e) {
@@ -317,7 +317,7 @@ class ProductController {
         
         if (!$this->product->getById($id)) {
             setFlashMessage('error', 'Không tìm thấy sản phẩm');
-            redirect('/controllers/ProductController.php?action=index');
+            redirect('?controller=ProductController&action=index');
             return;
         }
         
@@ -343,7 +343,7 @@ class ProductController {
 
         if (!$this->product->getById($id)) {
             setFlashMessage('error', 'Không tìm thấy sản phẩm');
-            redirect('/controllers/ProductController.php?action=index');
+            redirect('?controller=ProductController&action=index');
             return;
         }
 

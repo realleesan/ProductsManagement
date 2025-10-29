@@ -18,7 +18,7 @@ if (file_exists($alert_path)) {
                     <h1><i class="fas fa-shopping-cart text-primary me-2"></i> Quản lý đơn hàng</h1>
                 </div>
                 <div>
-                    <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=create" class="btn btn-primary">
+                    <a href="<?= BASE_URL ?>?controller=OrderController&action=create" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i> Tạo đơn hàng mới
                     </a>
                 </div>
@@ -96,7 +96,7 @@ if (file_exists($alert_path)) {
             <i class="fas fa-search"></i> Tìm kiếm
         </button>
         
-        <a href="<?php echo BASE_URL; ?>/controllers/OrderController.php?action=index" class="btn btn-secondary">
+        <a href="<?php echo BASE_URL; ?>?controller=OrderController&action=index" class="btn btn-secondary">
             <i class="fas fa-redo"></i> Làm mới
         </a>
     </form>
@@ -140,7 +140,7 @@ if (file_exists($alert_path)) {
                             <tr class="order-row">
                                 <td class="ps-4" data-label="Mã đơn">
                                     <div class="d-flex flex-column">
-                                        <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=view&id=<?= $order['order_id'] ?>" class="fw-bold text-primary text-decoration-none">
+                                        <a href="<?= BASE_URL ?>?controller=OrderController&action=view&id=<?= $order['order_id'] ?>" class="fw-bold text-primary text-decoration-none">
                                             <?= htmlspecialchars($order['order_code']) ?>
                                         </a>
                                         <small class="text-muted">
@@ -183,23 +183,15 @@ if (file_exists($alert_path)) {
                                 </td>
                                 <td class="text-end pe-4" data-label="Thao tác">
                                     <div class="d-flex flex-wrap justify-content-end gap-1" style="min-width: 0;">
-                                        <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=view&id=<?= $order['order_id'] ?>" 
+                                        <a href="<?= BASE_URL ?>?controller=OrderController&action=view&id=<?= $order['order_id'] ?>" 
                                            class="btn btn-sm btn-outline-primary" 
                                            data-bs-toggle="tooltip" 
                                            title="Xem chi tiết"
                                            style="min-width: 32px;">
                                             <i class="far fa-eye"></i>
                                         </a>
-                                        <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=exportInvoice&id=<?= $order['order_id'] ?>" 
-                                           target="_blank" 
-                                           class="btn btn-sm btn-outline-secondary" 
-                                           data-bs-toggle="tooltip" 
-                                           title="In hóa đơn"
-                                           style="min-width: 32px;">
-                                            <i class="fas fa-print"></i>
-                                        </a>
                                         <?php if ($order['status'] === 'Chờ xác nhận'): ?>
-                                            <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=delete&id=<?= $order['order_id'] ?>" 
+                                            <a href="<?= BASE_URL ?>?controller=OrderController&action=delete&id=<?= $order['order_id'] ?>" 
                                                class="btn btn-sm btn-outline-danger" 
                                                onclick="return confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')" 
                                                data-bs-toggle="tooltip" 
@@ -286,7 +278,7 @@ if (file_exists($alert_path)) {
 // Hàm xác nhận xóa (giữ lại nếu có chỗ khác sử dụng)
 function confirmDelete(orderId) {
     if (confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
-        window.location.href = '<?= BASE_URL ?>/controllers/OrderController.php?action=delete&id=' + orderId;
+        window.location.href = '<?= BASE_URL ?>?controller=OrderController&action=delete&id=' + orderId;
     }
 }
 

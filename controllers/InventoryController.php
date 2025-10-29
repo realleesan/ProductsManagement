@@ -54,12 +54,12 @@ class InventoryController {
      * Hiển thị form nhập kho
      */
     public function importForm() {
-        // Lấy danh sách sản phẩm (bao gồm cả sản phẩm hết hàng nhưng loại bỏ sản phẩm hết hạn)
+        // Lấy danh sách sản phẩm (bao gồm cả sản phẩm hết hạn để có thể nhập lại)
         $products = $this->product->getAll('', '', '')->fetchAll();
         
-        // Lọc sản phẩm không bị vô hiệu hóa và không hết hạn
+        // Lọc sản phẩm không bị vô hiệu hóa (cho phép cả Expired)
         $products = array_filter($products, function($product) {
-            return $product['status'] != 'Disabled' && $product['status'] != 'Expired';
+            return $product['status'] != 'Disabled';
         });
         
         // Tạo mã phiếu nhập tự động
@@ -73,7 +73,7 @@ class InventoryController {
      */
     public function import() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('/controllers/InventoryController.php?action=index');
+            redirect('?controller=InventoryController&action=index');
             return;
         }
         
@@ -84,6 +84,10 @@ class InventoryController {
             $import_date = date('Y-m-d', strtotime($_POST['import_date']));
             $import_by = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : 'admin_demo';
             $note = sanitizeInput($_POST['note']);
+            
+            // Lấy thông tin cập nhật cho sản phẩm hết hạn
+            $new_manufacture_date = isset($_POST['new_manufacture_date']) ? $_POST['new_manufacture_date'] : null;
+            $new_expiry_date = isset($_POST['new_expiry_date']) ? $_POST['new_expiry_date'] : null;
             
             // Validate dữ liệu
             $errors = [];
@@ -97,15 +101,39 @@ class InventoryController {
             }
             
             // Kiểm tra sản phẩm tồn tại
-            $product = $this->product->getById($product_id);
-            if (!$product) {
+            $productFound = $this->product->getById($product_id);
+            if (!$productFound) {
                 $errors[] = 'Sản phẩm không tồn tại';
+            }
+            
+            // Validate thông tin cập nhật cho sản phẩm hết hạn
+            if ($productFound && $this->product->status === 'Expired') {
+                $confirm_expired_update = isset($_POST['confirm_expired_update']) ? $_POST['confirm_expired_update'] : false;
+                
+                if (empty($new_manufacture_date)) {
+                    $errors[] = 'Vui lòng nhập ngày sản xuất mới cho sản phẩm hết hạn';
+                }
+                if (empty($new_expiry_date)) {
+                    $errors[] = 'Vui lòng nhập ngày hết hạn mới cho sản phẩm hết hạn';
+                }
+                if (!$confirm_expired_update) {
+                    $errors[] = 'Vui lòng xác nhận đã kiểm tra và cập nhật đúng thông tin cho sản phẩm hết hạn';
+                }
+                if ($new_manufacture_date && $new_expiry_date && strtotime($new_manufacture_date) >= strtotime($new_expiry_date)) {
+                    $errors[] = 'Ngày sản xuất phải trước ngày hết hạn';
+                }
+                if ($new_manufacture_date && strtotime($new_manufacture_date) > time()) {
+                    $errors[] = 'Ngày sản xuất không được vượt quá ngày hiện tại';
+                }
+                if ($new_expiry_date && strtotime($new_expiry_date) <= time()) {
+                    $errors[] = 'Ngày hết hạn phải sau ngày hiện tại';
+                }
             }
             
             if (!empty($errors)) {
                 setFlashMessage('error', implode('<br>', $errors));
                 $_SESSION['form_data'] = $_POST;
-                redirect('/controllers/InventoryController.php?action=importForm');
+                redirect('?controller=InventoryController&action=importForm');
                 return;
             }
             
@@ -149,10 +177,41 @@ class InventoryController {
                 // 3. Cập nhật tồn kho
                 $this->inventory->updateStock($product_id, $quantity, 'import');
                 
-                // 4. Lấy tồn kho sau khi cập nhật
+                // 4. Cập nhật thông tin sản phẩm nếu là sản phẩm hết hạn
+                if ($productFound && $this->product->status === 'Expired' && $new_manufacture_date && $new_expiry_date) {
+                    // Xác định trạng thái mới dựa trên ngày hết hạn mới
+                    $new_status = 'Active'; // Mặc định là Active vì đã có ngày hết hạn mới
+                    $current_date = date('Y-m-d');
+                    
+                    // Nếu ngày hết hạn mới vẫn trong quá khứ, giữ nguyên Expired
+                    if (strtotime($new_expiry_date) < strtotime($current_date)) {
+                        $new_status = 'Expired';
+                    }
+                    
+                    $update_query = "UPDATE products 
+                                   SET manufacture_date = :manufacture_date, 
+                                       expiry_date = :expiry_date,
+                                       status = :status,
+                                       updated_at = NOW(),
+                                       updated_by = :updated_by
+                                   WHERE product_id = :product_id";
+                    
+                    $update_stmt = $this->db->prepare($update_query);
+                    $update_stmt->bindValue(":manufacture_date", $new_manufacture_date);
+                    $update_stmt->bindValue(":expiry_date", $new_expiry_date);
+                    $update_stmt->bindValue(":status", $new_status);
+                    $update_stmt->bindValue(":updated_by", $import_by);
+                    $update_stmt->bindValue(":product_id", $product_id);
+                    $update_stmt->execute();
+                    
+                    // Cập nhật note để ghi nhận việc cập nhật thông tin
+                    $note .= " | Cập nhật thông tin: NSX: {$new_manufacture_date}, HSD: {$new_expiry_date}, Trạng thái: {$new_status}";
+                }
+                
+                // 5. Lấy tồn kho sau khi cập nhật
                 $new_stock = $this->inventory->getCurrentStock($product_id);
                 
-                // 5. Ghi log lịch sử
+                // 6. Ghi log lịch sử
                 $query = "INSERT INTO warehouse_history 
                          (reference_code, action_type, product_id, quantity, old_stock, new_stock, action_by, note) 
                          VALUES (:ref_code, :action_type, :product_id, :quantity, :old_stock, :new_stock, :action_by, :note)";
@@ -184,7 +243,7 @@ class InventoryController {
                 $this->db->commit();
                 
                 setFlashMessage('success', 'Nhập kho thành công');
-                redirect('/controllers/InventoryController.php?action=index');
+                redirect('?controller=InventoryController&action=index');
                 
             } catch (Exception $e) {
                 $this->db->rollBack();
@@ -224,7 +283,7 @@ class InventoryController {
      */
     public function export() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('/controllers/InventoryController.php?action=index');
+            redirect('?controller=InventoryController&action=index');
             return;
         }
         
@@ -266,7 +325,7 @@ class InventoryController {
             if (!empty($errors)) {
                 setFlashMessage('error', implode('<br>', $errors));
                 $_SESSION['form_data'] = $_POST;
-                redirect('/controllers/InventoryController.php?action=exportForm');
+                redirect('?controller=InventoryController&action=exportForm');
                 return;
             }
             
@@ -322,7 +381,7 @@ class InventoryController {
                 $this->db->commit();
                 
                 setFlashMessage('success', 'Xuất kho thành công');
-                redirect('/controllers/InventoryController.php?action=index');
+                redirect('?controller=InventoryController&action=index');
                 
             } catch (Exception $e) {
                 $this->db->rollBack();
@@ -356,7 +415,7 @@ class InventoryController {
             
             if (!$transaction) {
                 setFlashMessage('error', 'Không tìm thấy giao dịch');
-                redirect('/controllers/InventoryController.php?action=index');
+                redirect('?controller=InventoryController&action=index');
                 return;
             }
             
@@ -386,7 +445,7 @@ class InventoryController {
             
             if (!$transaction) {
                 setFlashMessage('error', 'Không tìm thấy giao dịch');
-                redirect('/controllers/InventoryController.php?action=index');
+                redirect('?controller=InventoryController&action=index');
                 return;
             }
             
@@ -401,6 +460,174 @@ class InventoryController {
         }
         
         require_once __DIR__ . "/../views/inventory/view.php";
+    }
+
+    /**
+     * Xóa bản ghi lịch sử kho và hoàn tác tồn kho tương ứng
+     */
+    public function delete() {
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            setFlashMessage('error', 'Thiếu mã giao dịch cần xóa');
+            redirect('?controller=InventoryController&action=index');
+            return;
+        }
+
+        try {
+            // Lấy bản ghi lịch sử
+            $query = "SELECT * FROM warehouse_history WHERE history_id = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $history = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$history) {
+                setFlashMessage('error', 'Không tìm thấy giao dịch cần xóa');
+                redirect('?controller=InventoryController&action=index');
+                return;
+            }
+
+            $product_id = (int)$history['product_id'];
+            $quantity = (int)$history['quantity'];
+            $action_type = $history['action_type']; // Import | Export
+
+            $this->db->beginTransaction();
+
+            // Hoàn tác tồn kho theo loại giao dịch
+            if ($action_type === 'Import') {
+                // Xóa nhập -> trừ tồn kho
+                $this->inventory->updateStock($product_id, $quantity, 'export');
+            } else {
+                // Xóa xuất -> cộng tồn kho
+                $this->inventory->updateStock($product_id, $quantity, 'import');
+            }
+
+            // Xóa bản ghi lịch sử
+            $del = $this->db->prepare("DELETE FROM warehouse_history WHERE history_id = :id");
+            $del->bindValue(':id', $id, PDO::PARAM_INT);
+            $del->execute();
+
+            $this->db->commit();
+
+            setFlashMessage('success', 'Đã xóa giao dịch và cập nhật tồn kho');
+            redirect('?controller=InventoryController&action=index');
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('Xóa lịch sử kho lỗi: ' . $e->getMessage());
+            setFlashMessage('error', 'Không thể xóa giao dịch. Vui lòng thử lại.');
+            redirect('?controller=InventoryController&action=index');
+        }
+    }
+
+    /**
+     * Hiển thị form chỉnh sửa lịch sử kho
+     */
+    public function edit() {
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            setFlashMessage('error', 'Thiếu mã giao dịch');
+            redirect('?controller=InventoryController&action=index');
+            return;
+        }
+
+        $stmt = $this->db->prepare("SELECT h.*, p.product_name, p.product_code FROM warehouse_history h LEFT JOIN products p ON p.product_id = h.product_id WHERE h.history_id = :id");
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $history = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$history) {
+            setFlashMessage('error', 'Không tìm thấy giao dịch');
+            redirect('?controller=InventoryController&action=index');
+            return;
+        }
+
+        require_once __DIR__ . '/../views/inventory/edit.php';
+    }
+
+    /**
+     * Cập nhật lịch sử kho (điều chỉnh tồn kho theo chênh lệch số lượng)
+     */
+    public function update() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('?controller=InventoryController&action=index');
+            return;
+        }
+
+        $id = (int)($_POST['history_id'] ?? 0);
+        $new_quantity = (int)($_POST['quantity'] ?? 0);
+        $note = sanitizeInput($_POST['note'] ?? '');
+
+        if ($id <= 0 || $new_quantity < 0) {
+            setFlashMessage('error', 'Dữ liệu không hợp lệ');
+            redirect('?controller=InventoryController&action=index');
+            return;
+        }
+
+        try {
+            // Lấy bản ghi hiện tại
+            $stmt = $this->db->prepare("SELECT * FROM warehouse_history WHERE history_id = :id");
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $history = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$history) {
+                setFlashMessage('error', 'Không tìm thấy giao dịch');
+                redirect('?controller=InventoryController&action=index');
+                return;
+            }
+
+            $product_id = (int)$history['product_id'];
+            $old_quantity = (int)$history['quantity'];
+            $action_type = $history['action_type'];
+
+            // Tính chênh lệch để điều chỉnh tồn kho
+            $delta = $new_quantity - $old_quantity; // dương: tăng, âm: giảm
+
+            $this->db->beginTransaction();
+
+            if ($delta !== 0) {
+                if ($action_type === 'Import') {
+                    // Import: delta dương -> cộng thêm; delta âm -> trừ bớt
+                    if ($delta > 0) {
+                        $this->inventory->updateStock($product_id, $delta, 'import');
+                    } else {
+                        $this->inventory->updateStock($product_id, abs($delta), 'export');
+                    }
+                } else { // Export
+                    // Export: delta dương -> xuất thêm (trừ tồn); delta âm -> hoàn lại (cộng tồn)
+                    if ($delta > 0) {
+                        $this->inventory->updateStock($product_id, $delta, 'export');
+                    } else {
+                        $this->inventory->updateStock($product_id, abs($delta), 'import');
+                    }
+                }
+            }
+
+            // Cập nhật lại record lịch sử theo tồn kho hiện tại
+            $old_stock = $this->inventory->getCurrentStock($product_id); // tồn sau khi điều chỉnh ở trên
+            $new_stock = $old_stock; // giữ đồng nhất
+
+            $upd = $this->db->prepare("UPDATE warehouse_history SET quantity = :q, note = :note, new_stock = :new_stock WHERE history_id = :id");
+            $upd->bindValue(':q', $new_quantity, PDO::PARAM_INT);
+            $upd->bindValue(':note', $note);
+            $upd->bindValue(':new_stock', $new_stock, PDO::PARAM_INT);
+            $upd->bindValue(':id', $id, PDO::PARAM_INT);
+            $upd->execute();
+
+            $this->db->commit();
+
+            setFlashMessage('success', 'Đã cập nhật giao dịch');
+            redirect('?controller=InventoryController&action=index');
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('Cập nhật lịch sử kho lỗi: ' . $e->getMessage());
+            setFlashMessage('error', 'Không thể cập nhật giao dịch.');
+            redirect('?controller=InventoryController&action=index');
+        }
     }
 }
 

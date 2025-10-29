@@ -266,25 +266,17 @@ class Product {
         } else {
             $today = strtotime(date('Y-m-d'));
             $expiry_timestamp = !empty($this->expiry_date) ? strtotime($this->expiry_date) : null;
-
+            
+            // Không cho phép chuyển sang 'Expired' thủ công
             if ($this->status === 'Expired' && $expiry_timestamp !== null && $expiry_timestamp >= $today) {
-                $errors[] = "Chỉ có thể đặt trạng thái 'Expired' khi sản phẩm đã quá hạn";
+                $errors[] = "Không thể đặt trạng thái 'Expired' khi sản phẩm chưa hết hạn. Trạng thái 'Expired' chỉ được tự động cập nhật khi sản phẩm hết hạn sử dụng.";
             }
-
+            
             if ($this->status === 'Active') {
-                if ($this->stock_quantity <= 0) {
-                    $errors[] = "Không thể đặt trạng thái 'Active' khi số lượng tồn kho bằng 0";
-                }
-                if ($expiry_timestamp !== null && $expiry_timestamp < $today) {
-                    $errors[] = "Không thể đặt trạng thái 'Active' khi sản phẩm đã hết hạn";
-                }
-            }
-
-            if ($this->status === 'Out of stock' && $this->stock_quantity > 0) {
-                $errors[] = "Không thể đặt trạng thái 'Out of stock' khi sản phẩm vẫn còn hàng";
+                // Cho phép đặt trạng thái Active ngay cả khi tồn kho = 0
+                // Database trigger sẽ tự động chuyển thành 'Out of stock' nếu cần
             }
         }
-
         return $errors;
     }
     
@@ -569,17 +561,28 @@ class Product {
                 throw new Exception("Lỗi khi cập nhật số lượng tồn kho");
             }
             
-            // Ghi log thay đổi tồn kho
-            $log_query = "INSERT INTO inventory_logs 
-                         (product_id, quantity_change, new_quantity, note, created_at) 
+            // Ghi log thay đổi tồn kho vào warehouse_history
+            $log_query = "INSERT INTO warehouse_history 
+                         (reference_code, action_type, product_id, quantity, old_stock, new_stock, action_by, note) 
                          VALUES 
-                         (:product_id, :quantity_change, :new_quantity, :note, NOW())";
+                         (:reference_code, :action_type, :product_id, :quantity, :old_stock, :new_stock, :action_by, :note)";
+            
+            $reference_code = 'ORDER_' . date('YmdHis');
+            $action_type = $quantity_change > 0 ? 'Import' : 'Export';
+            $action_by = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : 'system';
             
             $log_stmt = $this->conn->prepare($log_query);
-            $log_stmt->bindParam(':product_id', $product_id, PDO::PARAM_INT);
-            $log_stmt->bindParam(':quantity_change', $quantity_change, PDO::PARAM_INT);
-            $log_stmt->bindParam(':new_quantity', $new_quantity, PDO::PARAM_INT);
-            $log_stmt->bindParam(':note', $note);
+            $quantity_abs = abs($quantity_change);
+            $old_stock = $product['stock_quantity'];
+            
+            $log_stmt->bindValue(':reference_code', $reference_code);
+            $log_stmt->bindValue(':action_type', $action_type);
+            $log_stmt->bindValue(':product_id', $product_id, PDO::PARAM_INT);
+            $log_stmt->bindValue(':quantity', $quantity_abs, PDO::PARAM_INT);
+            $log_stmt->bindValue(':old_stock', $old_stock, PDO::PARAM_INT);
+            $log_stmt->bindValue(':new_stock', $new_quantity, PDO::PARAM_INT);
+            $log_stmt->bindValue(':action_by', $action_by);
+            $log_stmt->bindValue(':note', $note);
             $log_stmt->execute();
             
             // Cập nhật trạng thái sản phẩm nếu cần

@@ -427,6 +427,11 @@ class Order {
             $query .= ", completed_by = :completed_by, completed_at = NOW()";
         }
         
+        // Nếu thanh toán đơn hàng
+        if ($new_status === 'Đã thanh toán') {
+            $query .= ", paid_by = :paid_by, paid_at = NOW()";
+        }
+        
         $query .= " WHERE order_id = :order_id";
         
         $stmt = $this->conn->prepare($query);
@@ -450,6 +455,11 @@ class Order {
         // Gán giá trị cho người hoàn tất nếu có
         if ($new_status === 'Hoàn tất') {
             $stmt->bindValue(":completed_by", $_SESSION['user']['username']);
+        }
+        
+        // Gán giá trị cho người thanh toán nếu có
+        if ($new_status === 'Đã thanh toán') {
+            $stmt->bindValue(":paid_by", $_SESSION['user']['username']);
         }
         
         return $stmt->execute();

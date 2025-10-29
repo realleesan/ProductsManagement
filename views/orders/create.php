@@ -12,20 +12,29 @@ require_once __DIR__ . '/../layouts/header.php';
         <h1 class="h3 mb-0"><i class="fas fa-plus-circle text-primary me-2"></i>Tạo đơn hàng mới</h1>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/ProductController.php?action=dashboard">Trang chủ</a></li>
-                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/OrderController.php?action=index">Đơn hàng</a></li>
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>?controller=ProductController&action=dashboard">Trang chủ</a></li>
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>?controller=OrderController&action=index">Đơn hàng</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Tạo mới</li>
                         </ol>
                     </nav>
     </div>
     <div>
-                    <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=index" class="btn btn-outline-secondary">
+                    <a href="<?= BASE_URL ?>?controller=OrderController&action=index" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i> Quay lại
         </a>
     </div>
 </div>
 
-            <form id="orderForm" method="post" action="<?= BASE_URL ?>/controllers/OrderController.php?action=store">
+            <?php 
+            $flashMessage = getFlashMessage();
+            if ($flashMessage): ?>
+                <div class="alert alert-<?= $flashMessage['type'] === 'success' ? 'success' : 'danger' ?> alert-dismissible fade show" role="alert">
+                    <?= $flashMessage['message'] ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            
+            <form id="orderForm" method="post" action="?controller=OrderController&action=store">
                 <div class="row">
                     <div class="col-lg-8">
 
@@ -217,7 +226,7 @@ require_once __DIR__ . '/../layouts/header.php';
                                         <?php endforeach; ?>
                                     </select>
                                     <div class="form-text">
-                                        <a href="<?= BASE_URL ?>?controller=CustomerController&action=create" target="_blank">
+                                        <a href="<?= BASE_URL ?>?controller=CustomerController&action=create&redirect=<?= urlencode(BASE_URL . '?controller=OrderController&action=create') ?>" target="_blank">
                                             <i class="fas fa-plus"></i> Thêm khách hàng mới
                                         </a>
                                     </div>
@@ -231,6 +240,17 @@ require_once __DIR__ . '/../layouts/header.php';
                                 <div class="mb-3">
                                     <label for="shipping_note" class="form-label">Ghi chú giao hàng</label>
                                     <textarea class="form-control" id="shipping_note" name="shipping_note" rows="2" placeholder="Ghi chú cho việc giao hàng (nếu có)"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="payment_method" class="form-label">Phương thức thanh toán <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="payment_method" name="payment_method" required>
+                                        <option value="">-- Chọn phương thức thanh toán --</option>
+                                        <option value="Tiền mặt">Tiền mặt</option>
+                                        <option value="Chuyển khoản">Chuyển khoản</option>
+                                        <option value="Thẻ tín dụng">Thẻ tín dụng</option>
+                                        <option value="COD">COD (Thanh toán khi nhận hàng)</option>
+                                    </select>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -581,6 +601,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update form data before submission
     function updateFormData() {
+        console.log('Updating form data...');
+        console.log('Cart items before mapping:', cartItems);
+        
         // Prepare order items data
         const orderItemsData = cartItems.map(item => ({
             product_id: item.id,
@@ -589,42 +612,59 @@ document.addEventListener('DOMContentLoaded', function() {
             total_price: item.price * item.quantity
         }));
         
+        console.log('Order items data:', orderItemsData);
+        
         // Update hidden fields
         orderItemsInput.value = JSON.stringify(orderItemsData);
         totalAmountInput.value = document.getElementById('totalAmount').textContent.replace(/[^0-9]/g, '');
+        
+        console.log('Hidden fields updated:');
+        console.log('orderItemsInput.value:', orderItemsInput.value);
+        console.log('totalAmountInput.value:', totalAmountInput.value);
     }
     
     // Form submission
     orderForm.addEventListener('submit', function(e) {
-        // Prevent default form submission for demo
-        e.preventDefault();
+        console.log('Form submitting...');
+        console.log('Cart items:', cartItems);
+        console.log('Cart items length:', cartItems.length);
         
         // Validate form
         if (cartItems.length === 0) {
+            e.preventDefault();
             alert('Vui lòng thêm ít nhất một sản phẩm vào đơn hàng');
             return false;
         }
         
         const customerId = document.getElementById('customer_id').value;
         const shippingAddress = document.getElementById('shipping_address').value;
+        const paymentMethod = document.getElementById('payment_method').value;
         
         if (!customerId) {
+            e.preventDefault();
             alert('Vui lòng chọn khách hàng');
             return false;
         }
         
         if (!shippingAddress.trim()) {
+            e.preventDefault();
             alert('Vui lòng nhập địa chỉ giao hàng');
+            return false;
+        }
+        
+        if (!paymentMethod) {
+            e.preventDefault();
+            alert('Vui lòng chọn phương thức thanh toán');
             return false;
         }
         
         // Update form data before submission
         updateFormData();
         
-        // Submit the form
-        orderForm.submit();
+        console.log('Form validation passed, submitting...');
         
-        return false;
+        // Allow form to submit normally
+        return true;
     });
     
     // Show alert message (removed UI alerts)

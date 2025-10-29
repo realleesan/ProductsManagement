@@ -123,9 +123,17 @@ require_once __DIR__ . '/../layouts/header.php';
                         <td><?php echo htmlspecialchars($transaction['action_by'] ?? ''); ?></td>
                         <td><?php echo date('d/m/Y H:i', strtotime($transaction['action_at'] ?? 'now')); ?></td>
                         <td class="text-center">
-                            <a href="?action=view&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-info" title="Xem chi tiết">
-                                <i class="fas fa-eye"></i>
-                            </a>
+                            <div class="action-buttons">
+                                <a href="?action=view&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-info" title="Xem chi tiết">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="?action=edit&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-warning" title="Sửa">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="?action=delete&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-danger" title="Xóa" onclick="return confirm('Bạn có chắc chắn muốn xóa giao dịch này? Tồn kho sẽ được điều chỉnh lại.');">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>

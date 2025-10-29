@@ -36,7 +36,7 @@
                        class="nav-link <?php echo (isset($active_page) && $active_page == 'inventory') ? 'active' : ''; ?>">
                         <i class="fas fa-warehouse"></i> Kho
                     </a>
-                    <a href="<?php echo BASE_URL; ?>/controllers/OrderController.php?action=index" 
+                    <a href="<?php echo BASE_URL; ?>?controller=OrderController&action=index" 
                        class="nav-link <?php echo (isset($active_page) && $active_page == 'orders') ? 'active' : ''; ?>">
                         <i class="fas fa-shopping-cart"></i> Đơn hàng
                     </a>

@@ -13,17 +13,14 @@ require_once __DIR__ . '/../layouts/header.php';
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/ProductController.php?action=dashboard">Trang chủ</a></li>
-                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/controllers/OrderController.php?action=index">Đơn hàng</a></li>
+                            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>?controller=OrderController&action=index">Đơn hàng</a></li>
                             <li class="breadcrumb-item active" aria-current="page">#<?= htmlspecialchars($order['order_code']) ?></li>
                         </ol>
                     </nav>
                 </div>
                 <div>
-                    <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=index" class="btn btn-outline-secondary me-2">
+                    <a href="<?= BASE_URL ?>?controller=OrderController&action=index" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-1"></i> Quay lại
-                    </a>
-                    <a href="<?= BASE_URL ?>/controllers/OrderController.php?action=exportInvoice&id=<?= $order['order_id'] ?>" target="_blank" class="btn btn-primary">
-                        <i class="fas fa-print me-1"></i> In hóa đơn
                     </a>
                 </div>
             </div>
@@ -252,7 +249,7 @@ require_once __DIR__ . '/../layouts/header.php';
                             <h5 class="card-title mb-0">Trạng thái đơn hàng</h5>
                         </div>
                         <div class="card-body">
-                            <form id="updateStatusForm" method="post" action="<?= BASE_URL ?>/controllers/OrderController.php?action=updateStatus">
+                            <form id="updateStatusForm" method="post" action="?controller=OrderController&action=updateStatus">
                                 <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
                                 
                                 <!-- Phương thức thanh toán -->
@@ -307,7 +304,7 @@ require_once __DIR__ . '/../layouts/header.php';
                             
                             <?php if ($order['status'] === 'Chờ xác nhận'): ?>
                                 <hr>
-                                <form method="post" action="<?= BASE_URL ?>/controllers/OrderController.php?action=delete&id=<?= $order['order_id'] ?>" 
+                                <form method="post" action="<?= BASE_URL ?>?controller=OrderController&action=delete&id=<?= $order['order_id'] ?>" 
                                       onsubmit="return confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')">
                                     <button type="submit" class="btn btn-outline-danger w-100">
                                         <i class="fas fa-trash me-1"></i> Xóa đơn hàng
