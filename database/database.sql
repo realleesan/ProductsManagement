@@ -172,7 +172,7 @@ INSERT INTO products (product_code, product_name, description, price, stock_quan
 ('SP003', 'Dầu gội Tresemme Keratin Smooth', 'Dầu gội phục hồi tóc hư tổn với keratin, giúp tóc mượt mà và bóng khỏe', 180000, 100, 3, '2024-03-10', '2026-03-10', 'Active', 'sample_tresemme_main.jpg', 'admin'),
 ('SP004', 'Nước hoa Chanel No.5 EDP 100ml', 'Nước hoa nữ huyền thoại với hương thơm quyến rũ và sang trọng', 3500000, 15, 4, '2024-01-20', '2027-01-20', 'Active', 'sample_chanel_main.jpg', 'admin'),
 ('SP005', 'Sữa tắm Dove Deep Moisture', 'Sữa tắm dưỡng ẩm sâu với 1/4 kem dưỡng ẩm, cho làn da mềm mại', 120000, 200, 5, '2024-04-01', '2026-04-01', 'Active', 'sample_dove_main.jpg', 'admin'),
-('SP006', 'Serum Vitamin C The Ordinary', 'Serum vitamin C 23% giúp làm sáng da và mờ thâm nám', 280000, 0, 1, '2024-02-15', '2025-08-15', 'Out of stock', 'sample_ordinary_main.jpg', 'admin'),
+('SP006', 'Serum Vitamin C The Ordinary', 'Serum vitamin C 23% giúp làm sáng da và mờ thâm nám', 280000, 0, 1, '2024-02-15', '2025-08-15', 'Expired', 'sample_ordinary_main.jpg', 'admin'),
 ('SP007', 'Phấn phủ Innisfree No Sebum Mineral', 'Phấn phủ kiềm dầu hiệu quả, giữ lớp makeup lâu trôi', 195000, 80, 2, '2024-03-20', '2026-03-20', 'Active', 'sample_innisfree_main.jpg', 'admin'),
 ('SP008', 'Mặt nạ ngủ Laneige Water Sleeping Mask', 'Mặt nạ ngủ cấp ẩm chuyên sâu, giúp da tươi sáng vào buổi sáng', 520000, 45, 1, '2024-01-10', '2026-01-10', 'Active', 'sample_laneige_main.jpg', 'admin'),
 ('SP009', 'Kem chống nắng La Roche-Posay SPF50+', 'Kem chống nắng phổ rộng, phù hợp cho da nhạy cảm', 420000, 60, 1, '2023-12-01', '2025-06-01', 'Active', 'sample_laroche_main.jpg', 'admin'),
@@ -285,6 +285,226 @@ DELIMITER ;
 -- KẾT THÚC SCRIPT
 -- =====================================================
 
+-- =====================================================
+-- HỆ THỐNG QUẢN LÝ KHO
+-- Phiên bản: 1.0
+-- Mục đích: Học tập và kiểm thử
+-- =====================================================
+
+USE quanlysanpham;
+
+-- =====================================================
+-- BẢNG PHIẾU NHẬP KHO
+-- =====================================================
+CREATE TABLE warehouse_import (
+    import_id INT AUTO_INCREMENT PRIMARY KEY,
+    import_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã phiếu nhập, định dạng PNYYYYMMDDXXX',
+    product_id INT NOT NULL COMMENT 'Sản phẩm nhập',
+    quantity INT NOT NULL COMMENT 'Số lượng nhập >= 1',
+    import_date DATE NOT NULL COMMENT 'Ngày nhập hàng',
+    import_by VARCHAR(50) NOT NULL COMMENT 'Người nhập hàng',
+    note TEXT COMMENT 'Ghi chú phiếu nhập',
+    status ENUM('Pending', 'Completed', 'Cancelled') DEFAULT 'Pending' COMMENT 'Trạng thái phiếu nhập',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Khóa ngoại
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- BẢNG PHIẾU XUẤT KHO
+-- =====================================================
+CREATE TABLE warehouse_export (
+    export_id INT AUTO_INCREMENT PRIMARY KEY,
+    export_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã phiếu xuất, định dạng PXYYYYMMDDXXX',
+    product_id INT NOT NULL COMMENT 'Sản phẩm xuất',
+    quantity INT NOT NULL COMMENT 'Số lượng xuất >= 1',
+    export_date DATE NOT NULL COMMENT 'Ngày xuất hàng',
+    export_by VARCHAR(50) NOT NULL COMMENT 'Người xuất hàng',
+    reason ENUM('Sale', 'Return', 'Damaged', 'Expired', 'Other') NOT NULL COMMENT 'Lý do xuất kho',
+    note TEXT COMMENT 'Ghi chú phiếu xuất',
+    status ENUM('Pending', 'Completed', 'Cancelled') DEFAULT 'Pending' COMMENT 'Trạng thái phiếu xuất',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Khóa ngoại
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- BẢNG LỊCH SỬ THAO TÁC KHO
+-- =====================================================
+CREATE TABLE warehouse_history (
+    history_id INT AUTO_INCREMENT PRIMARY KEY,
+    reference_code VARCHAR(20) NOT NULL COMMENT 'Mã phiếu nhập/xuất',
+    action_type ENUM('Import', 'Export', 'Update', 'Cancel') NOT NULL COMMENT 'Loại thao tác',
+    product_id INT NOT NULL COMMENT 'Sản phẩm liên quan',
+    quantity INT NOT NULL COMMENT 'Số lượng thay đổi',
+    old_stock INT COMMENT 'Tồn kho trước khi thay đổi',
+    new_stock INT COMMENT 'Tồn kho sau khi thay đổi',
+    action_by VARCHAR(50) NOT NULL COMMENT 'Người thực hiện',
+    action_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    note TEXT COMMENT 'Ghi chú',
+    
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- TRIGGER CẬP NHẬT TỒN KHO
+-- =====================================================
+DELIMITER $$
+
+-- Trigger kiểm tra ràng buộc khi thêm phiếu nhập
+CREATE TRIGGER trg_validate_warehouse_import
+BEFORE INSERT ON warehouse_import
+FOR EACH ROW
+BEGIN
+    -- Kiểm tra định dạng mã phiếu nhập
+    IF NEW.import_code NOT REGEXP '^PN[0-9]{8}[0-9]{3}$' THEN 
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Mã phiếu nhập không hợp lệ. Định dạng phải là PNYYYYMMDDXXX';
+    END IF;
+    
+    -- Kiểm tra số lượng nhập
+    IF NEW.quantity < 1 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Số lượng nhập phải lớn hơn 0';
+    END IF;
+    
+    -- Kiểm tra ngày nhập không được vượt quá ngày hiện tại
+    IF NEW.import_date > CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ngày nhập không được vượt quá ngày hiện tại';
+    END IF;
+END$$
+
+-- Trigger kiểm tra ràng buộc khi cập nhật phiếu nhập
+CREATE TRIGGER trg_validate_warehouse_import_update
+BEFORE UPDATE ON warehouse_import
+FOR EACH ROW
+BEGIN
+    -- Kiểm tra định dạng mã phiếu nhập
+    IF NEW.import_code NOT REGEXP '^PN[0-9]{8}[0-9]{3}$' THEN 
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Mã phiếu nhập không hợp lệ. Định dạng phải là PNYYYYMMDDXXX';
+    END IF;
+    
+    -- Kiểm tra số lượng nhập
+    IF NEW.quantity < 1 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Số lượng nhập phải lớn hơn 0';
+    END IF;
+    
+    -- Kiểm tra ngày nhập không được vượt quá ngày hiện tại
+    IF NEW.import_date > CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ngày nhập không được vượt quá ngày hiện tại';
+    END IF;
+END$$
+
+-- Trigger khi hoàn tất phiếu nhập
+CREATE TRIGGER trg_warehouse_import_complete
+AFTER UPDATE ON warehouse_import
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'Completed' AND OLD.status = 'Pending' THEN
+        -- Cập nhật số lượng tồn kho
+        UPDATE products 
+        SET stock_quantity = stock_quantity + NEW.quantity,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE product_id = NEW.product_id;
+        
+        -- Ghi lịch sử
+        INSERT INTO warehouse_history (
+            reference_code, action_type, product_id, quantity, 
+            old_stock, new_stock, action_by, note
+        )
+        SELECT 
+            NEW.import_code, 'Import', NEW.product_id, NEW.quantity,
+            stock_quantity - NEW.quantity, stock_quantity,
+            NEW.import_by, CONCAT('Nhập kho: ', COALESCE(NEW.note, ''))
+        FROM products 
+        WHERE product_id = NEW.product_id;
+    END IF;
+END$$
+
+-- Trigger kiểm tra ràng buộc khi thêm phiếu xuất
+CREATE TRIGGER trg_validate_warehouse_export
+BEFORE INSERT ON warehouse_export
+FOR EACH ROW
+BEGIN
+    -- Kiểm tra định dạng mã phiếu xuất
+    IF NEW.export_code NOT REGEXP '^PX[0-9]{8}[0-9]{3}$' THEN 
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Mã phiếu xuất không hợp lệ. Định dạng phải là PXYYYYMMDDXXX';
+    END IF;
+    
+    -- Kiểm tra số lượng xuất
+    IF NEW.quantity < 1 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Số lượng xuất phải lớn hơn 0';
+    END IF;
+    
+    -- Kiểm tra ngày xuất không được vượt quá ngày hiện tại
+    IF NEW.export_date > CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ngày xuất không được vượt quá ngày hiện tại';
+    END IF;
+END$$
+
+-- Trigger kiểm tra ràng buộc khi cập nhật phiếu xuất
+CREATE TRIGGER trg_validate_warehouse_export_update
+BEFORE UPDATE ON warehouse_export
+FOR EACH ROW
+BEGIN
+    -- Kiểm tra định dạng mã phiếu xuất
+    IF NEW.export_code NOT REGEXP '^PX[0-9]{8}[0-9]{3}$' THEN 
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Mã phiếu xuất không hợp lệ. Định dạng phải là PXYYYYMMDDXXX';
+    END IF;
+    
+    -- Kiểm tra số lượng xuất
+    IF NEW.quantity < 1 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Số lượng xuất phải lớn hơn 0';
+    END IF;
+    
+    -- Kiểm tra ngày xuất không được vượt quá ngày hiện tại
+    IF NEW.export_date > CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ngày xuất không được vượt quá ngày hiện tại';
+    END IF;
+END$$
+
+-- Trigger khi hoàn tất phiếu xuất
+CREATE TRIGGER trg_warehouse_export_complete
+AFTER UPDATE ON warehouse_export
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'Completed' AND OLD.status = 'Pending' THEN
+        -- Kiểm tra và cập nhật số lượng tồn kho
+        UPDATE products 
+        SET stock_quantity = stock_quantity - NEW.quantity,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE product_id = NEW.product_id
+        AND stock_quantity >= NEW.quantity;
+        
+        -- Ghi lịch sử
+        INSERT INTO warehouse_history (
+            reference_code, action_type, product_id, quantity,
+            old_stock, new_stock, action_by, note
+        )
+        SELECT 
+            NEW.export_code, 'Export', NEW.product_id, NEW.quantity,
+            stock_quantity + NEW.quantity, stock_quantity,
+            NEW.export_by, CONCAT('Xuất kho: ', NEW.reason, ' - ', COALESCE(NEW.note, ''))
+        FROM products 
+        WHERE product_id = NEW.product_id;
+    END IF;
+END$$
+
+DELIMITER ;
 
 -- =====================================================
 -- VIEW HỖ TRỢ QUẢN LÝ KHO
@@ -401,6 +621,8 @@ CREATE TABLE orders (
     completed_at DATETIME COMMENT 'Thời điểm hoàn tất',
     cancelled_by VARCHAR(50) COMMENT 'Người hủy đơn',
     cancelled_at DATETIME COMMENT 'Thời điểm hủy',
+    paid_by VARCHAR(50) COMMENT 'Người thanh toán đơn',
+    paid_at DATETIME COMMENT 'Thời điểm thanh toán',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -596,6 +818,192 @@ INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_pri
 (1, 1, 2, 350000, 700000),
 (1, 2, 1, 650000, 650000),
 (2, 3, 3, 180000, 540000);
+
+-- =====================================================
+-- KẾT THÚC SCRIPT
+-- =====================================================
+
+-- =====================================================
+-- DỮ LIỆU MẪU BỔ SUNG CHO HỆ THỐNG QUẢN LÝ SẢN PHẨM
+-- Phiên bản: 1.0
+-- Mục đích: Bổ sung dữ liệu mẫu để test và demo
+-- =====================================================
+
+USE quanlysanpham;
+
+-- =====================================================
+-- 1. BỔ SUNG 5 DANH MỤC MẪU VÀO CATEGORIES
+-- =====================================================
+
+INSERT INTO categories (category_code, category_name, description, status) VALUES
+('DMMASK', 'Mặt nạ', 'Các loại mặt nạ chăm sóc da mặt', 'Active'),
+('DMLIP', 'Son môi', 'Các loại son môi và sản phẩm trang điểm môi', 'Active'),
+('DMHAIR', 'Chăm sóc tóc', 'Dầu gội, dầu xả, serum tóc và các sản phẩm chăm sóc tóc', 'Active'),
+('DMBATH', 'Sản phẩm tắm', 'Sữa tắm, gel tắm, muối tắm và các sản phẩm vệ sinh cơ thể', 'Active'),
+('DMCREAM', 'Kem dưỡng', 'Các loại kem dưỡng da mặt và cơ thể', 'Active');
+
+-- =====================================================
+-- 2. BỔ SUNG 10 PHIẾU KHO MẪU (5 NHẬP + 5 XUẤT)
+-- =====================================================
+
+-- 5 phiếu nhập kho
+INSERT INTO warehouse_import (import_code, product_id, quantity, import_date, import_by, note, status) VALUES
+('PN20240301001', 1, 25, '2024-03-01', 'tester', 'Nhập bổ sung kem dưỡng ẩm', 'Completed'),
+('PN20240302002', 2, 15, '2024-03-02', 'tester', 'Nhập son môi MAC mới', 'Completed'),
+('PN20240303003', 3, 50, '2024-03-03', 'tester', 'Nhập dầu gội Tresemme', 'Completed'),
+('PN20240304004', 4, 8, '2024-03-04', 'tester', 'Nhập nước hoa Chanel', 'Completed'),
+('PN20240305005', 5, 100, '2024-03-05', 'tester', 'Nhập sữa tắm Dove', 'Completed');
+
+-- 5 phiếu xuất kho
+INSERT INTO warehouse_export (export_code, product_id, quantity, export_date, export_by, reason, note, status) VALUES
+('PX20240310001', 1, 5, '2024-03-10', 'tester', 'Sale', 'Xuất bán lẻ', 'Completed'),
+('PX20240311002', 2, 3, '2024-03-11', 'tester', 'Sale', 'Xuất cho khách VIP', 'Completed'),
+('PX20240312003', 3, 20, '2024-03-12', 'tester', 'Sale', 'Xuất bán sỉ', 'Completed'),
+('PX20240313004', 4, 2, '2024-03-13', 'tester', 'Return', 'Hàng lỗi cần trả', 'Completed'),
+('PX20240314005', 5, 30, '2024-03-14', 'tester', 'Sale', 'Xuất cho đại lý', 'Completed');
+
+-- =====================================================
+-- BỔ SUNG DỮ LIỆU CHO WAREHOUSE_HISTORY
+-- =====================================================
+
+-- Lịch sử cho 5 phiếu nhập kho
+INSERT INTO warehouse_history (reference_code, action_type, product_id, quantity, old_stock, new_stock, action_by, note) VALUES
+('PN20240301001', 'Import', 1, 25, 50, 75, 'tester', 'Nhập bổ sung kem dưỡng ẩm'),
+('PN20240302002', 'Import', 2, 15, 30, 45, 'tester', 'Nhập son môi MAC mới'),
+('PN20240303003', 'Import', 3, 50, 100, 150, 'tester', 'Nhập dầu gội Tresemme'),
+('PN20240304004', 'Import', 4, 8, 15, 23, 'tester', 'Nhập nước hoa Chanel'),
+('PN20240305005', 'Import', 5, 100, 200, 300, 'tester', 'Nhập sữa tắm Dove');
+
+-- Lịch sử cho 5 phiếu xuất kho
+INSERT INTO warehouse_history (reference_code, action_type, product_id, quantity, old_stock, new_stock, action_by, note) VALUES
+('PX20240310001', 'Export', 1, 5, 75, 70, 'tester', 'Xuất bán lẻ'),
+('PX20240311002', 'Export', 2, 3, 45, 42, 'tester', 'Xuất cho khách VIP'),
+('PX20240312003', 'Export', 3, 20, 150, 130, 'tester', 'Xuất bán sỉ'),
+('PX20240313004', 'Export', 4, 2, 23, 21, 'tester', 'Hàng lỗi cần trả'),
+('PX20240314005', 'Export', 5, 30, 300, 270, 'tester', 'Xuất cho đại lý');
+
+-- =====================================================
+-- 3. BỔ SUNG 8 KHÁCH HÀNG MẪU
+-- =====================================================
+
+INSERT INTO customers (customer_code, fullname, phone, email, address, status) VALUES
+('KH2024003', 'Lê Minh Tuấn', '0987654321', 'leminhtuan@gmail.com', 'Số 123 Đường Lê Lợi, Quận 1, TP. Đà Nẵng', 'Active'),
+('KH2024004', 'Phạm Thị Hương', '0912345678', 'phamthihuong@yahoo.com', 'Số 456 Đường Nguyễn Huệ, Quận Ninh Kiều, TP. Cần Thơ', 'Active'),
+('KH2024005', 'Hoàng Văn Đức', '0923456789', 'hoangvanduc@outlook.com', 'Số 789 Đường Trần Hưng Đạo, Quận Hải Châu, TP. Đà Nẵng', 'Active'),
+('KH2024006', 'Nguyễn Thị Mai', '0934567890', 'nguyenthimai@gmail.com', 'Số 321 Đường Lê Duẩn, Quận Thanh Khê, TP. Đà Nẵng', 'Active'),
+('KH2024007', 'Trần Văn Nam', '0945678901', 'tranvannam@yahoo.com', 'Số 654 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh', 'Active'),
+('KH2024008', 'Lê Thị Lan', '0956789012', 'lethilan@gmail.com', 'Số 987 Đường Lý Thường Kiệt, Quận Hoàn Kiếm, TP. Hà Nội', 'Active'),
+('KH2024009', 'Phạm Văn Hùng', '0967890123', 'phamvanhung@outlook.com', 'Số 147 Đường Võ Văn Tần, Quận 3, TP. Hồ Chí Minh', 'Active'),
+('KH2024010', 'Nguyễn Thị Hoa', '0978901234', 'nguyenthihoa@gmail.com', 'Số 258 Đường Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Active');
+
+-- =====================================================
+-- 4. BỔ SUNG 8 ĐƠN HÀNG MẪU VỚI CÁC TRẠNG THÁI KHÁC NHAU
+-- =====================================================
+
+-- Đơn hàng 1: Chờ xác nhận
+INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, shipping_note) VALUES
+('DH20240201001', 3, '2024-02-01 09:30:00', 'COD', 'Số 123 Đường Lê Lợi, Quận 1, TP. Đà Nẵng', 'Chờ xác nhận', 'Giao hàng trong giờ hành chính');
+
+-- Đơn hàng 2: Đang xử lý
+INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, shipping_note) VALUES
+('DH20240202001', 4, '2024-02-02 14:15:00', 'Bank Transfer', 'Số 456 Đường Nguyễn Huệ, Quận Ninh Kiều, TP. Cần Thơ', 'Đang xử lý', 'admin', '2024-02-02 15:00:00', 'Kiểm tra kỹ trước khi đóng gói');
+
+-- Đơn hàng 3: Đang giao
+INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, shipping_note) VALUES
+('DH20240203001', 5, '2024-02-03 11:20:00', 'E-Wallet', 'Số 789 Đường Trần Hưng Đạo, Quận Hải Châu, TP. Đà Nẵng', 'Đang giao', 'admin', '2024-02-03 12:00:00', 'Giao hàng nhanh');
+
+-- Đơn hàng 4: Hoàn tất
+INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, completed_by, completed_at, shipping_note) VALUES
+('DH20240204001', 6, '2024-02-04 16:45:00', 'COD', 'Số 321 Đường Lê Duẩn, Quận Thanh Khê, TP. Đà Nẵng', 'Hoàn tất', 'admin', '2024-02-04 17:00:00', 'staff1', '2024-02-05 10:30:00', 'Đã giao thành công');
+
+-- Đơn hàng 5: Đã thanh toán
+INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, completed_by, completed_at, paid_by, paid_at, shipping_note) VALUES
+('DH20240205001', 7, '2024-02-05 13:10:00', 'Bank Transfer', 'Số 654 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh', 'Đã thanh toán', 'admin', '2024-02-05 13:30:00', 'staff2', '2024-02-06 09:15:00', 'staff2', '2024-02-06 14:20:00', 'Thanh toán qua chuyển khoản');
+
+-- Đơn hàng 6: Đã hủy
+INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, cancelled_by, cancelled_at, cancel_reason, shipping_note) VALUES
+('DH20240206001', 8, '2024-02-06 10:30:00', 'COD', 'Số 987 Đường Lý Thường Kiệt, Quận Hoàn Kiếm, TP. Hà Nội', 'Đã hủy', 'admin', '2024-02-06 11:00:00', 'admin', '2024-02-06 15:30:00', 'Khách hàng yêu cầu hủy do thay đổi ý định', 'Đơn hàng đã hủy');
+
+-- Đơn hàng 7: Chờ xác nhận (khách mới)
+INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, shipping_note) VALUES
+('DH20240207001', 9, '2024-02-07 08:45:00', 'E-Wallet', 'Số 147 Đường Võ Văn Tần, Quận 3, TP. Hồ Chí Minh', 'Chờ xác nhận', 'Khách hàng mới, ưu tiên xử lý');
+
+-- Đơn hàng 8: Đang xử lý
+INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, shipping_note) VALUES
+('DH20240208001', 10, '2024-02-08 15:20:00', 'Bank Transfer', 'Số 258 Đường Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Đang xử lý', 'admin', '2024-02-08 16:00:00', 'Đơn hàng lớn, cần kiểm tra kỹ');
+
+-- =====================================================
+-- 5. BỔ SUNG CHI TIẾT ĐƠN HÀNG (ORDER_DETAILS)
+-- =====================================================
+
+-- Chi tiết đơn hàng 1 (Chờ xác nhận)
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_price) VALUES
+(3, 1, 2, 350000, 700000),
+(3, 7, 1, 195000, 195000);
+
+-- Chi tiết đơn hàng 2 (Đang xử lý)
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_price) VALUES
+(4, 2, 1, 650000, 650000),
+(4, 8, 2, 520000, 1040000);
+
+-- Chi tiết đơn hàng 3 (Đang giao)
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_price) VALUES
+(5, 3, 3, 180000, 540000),
+(5, 5, 2, 120000, 240000);
+
+-- Chi tiết đơn hàng 4 (Hoàn tất)
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_price) VALUES
+(6, 4, 1, 3500000, 3500000),
+(6, 1, 1, 350000, 350000);
+
+-- Chi tiết đơn hàng 5 (Đã thanh toán)
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_price) VALUES
+(7, 9, 2, 420000, 840000),
+(7, 10, 3, 250000, 750000);
+
+-- Chi tiết đơn hàng 6 (Đã hủy)
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_price) VALUES
+(8, 2, 1, 650000, 650000);
+
+-- Chi tiết đơn hàng 7 (Chờ xác nhận)
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_price) VALUES
+(9, 1, 3, 350000, 1050000),
+(9, 3, 2, 180000, 360000),
+(9, 5, 1, 120000, 120000);
+
+-- Chi tiết đơn hàng 8 (Đang xử lý)
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_price) VALUES
+(10, 4, 1, 3500000, 3500000),
+(10, 2, 2, 650000, 1300000),
+(10, 8, 1, 520000, 520000);
+
+-- =====================================================
+-- 6. CẬP NHẬT TỔNG TIỀN CHO CÁC ĐƠN HÀNG
+-- =====================================================
+
+-- Cập nhật tổng tiền cho đơn hàng 1
+UPDATE orders SET total_amount = 895000 WHERE order_id = 3;
+
+-- Cập nhật tổng tiền cho đơn hàng 2
+UPDATE orders SET total_amount = 1690000 WHERE order_id = 4;
+
+-- Cập nhật tổng tiền cho đơn hàng 3
+UPDATE orders SET total_amount = 780000 WHERE order_id = 5;
+
+-- Cập nhật tổng tiền cho đơn hàng 4
+UPDATE orders SET total_amount = 3850000 WHERE order_id = 6;
+
+-- Cập nhật tổng tiền cho đơn hàng 5
+UPDATE orders SET total_amount = 1590000 WHERE order_id = 7;
+
+-- Cập nhật tổng tiền cho đơn hàng 6
+UPDATE orders SET total_amount = 650000 WHERE order_id = 8;
+
+-- Cập nhật tổng tiền cho đơn hàng 7
+UPDATE orders SET total_amount = 1530000 WHERE order_id = 9;
+
+-- Cập nhật tổng tiền cho đơn hàng 8
+UPDATE orders SET total_amount = 5320000 WHERE order_id = 10;
 
 -- =====================================================
 -- KẾT THÚC SCRIPT
