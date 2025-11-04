@@ -214,23 +214,32 @@ require_once __DIR__ . '/../layouts/header.php';
                                 <h5 class="card-title mb-0"><i class="fas fa-user me-2 text-primary"></i> Thông tin khách hàng</h5>
                             </div>
                             <div class="card-body">
+                                <!-- Thông tin khách hàng mới -->
                                 <div class="mb-3">
-                                    <label for="customer_id" class="form-label">Khách hàng <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="customer_id" name="customer_id" required>
-                                        <option value="">-- Chọn khách hàng --</option>
-                                        <?php foreach ($customers as $customer): ?>
-                                            <option value="<?= $customer['customer_id'] ?>">
-                                                <?= htmlspecialchars($customer['fullname']) ?> 
-                                                (<?= !empty($customer['phone']) ? htmlspecialchars($customer['phone']) : 'Chưa có SĐT' ?>)
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <div class="form-text">
-                                        <a href="<?= BASE_URL ?>?controller=CustomerController&action=create&redirect=<?= urlencode(BASE_URL . '?controller=OrderController&action=create') ?>" target="_blank">
-                                            <i class="fas fa-plus"></i> Thêm khách hàng mới
-                                        </a>
-                                    </div>
+                                    <label for="customer_fullname" class="form-label">Họ và tên khách hàng <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="customer_fullname" name="customer_fullname" required>
+                                    <div class="form-text">Nhập họ tên đầy đủ của khách hàng</div>
                                 </div>
+                                
+                                <div class="mb-3">
+                                    <label for="customer_phone" class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" id="customer_phone" name="customer_phone" pattern="[0-9]{10,11}" required>
+                                    <div class="form-text">Nhập số điện thoại 10-11 chữ số</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="customer_email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="customer_email" name="customer_email">
+                                    <div class="form-text">Email khách hàng (không bắt buộc)</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="customer_address" class="form-label">Địa chỉ</label>
+                                    <input type="text" class="form-control" id="customer_address" name="customer_address">
+                                    <div class="form-text">Địa chỉ khách hàng (không bắt buộc)</div>
+                                </div>
+                                
+                                <hr class="my-4">
                                 
                                 <div class="mb-3">
                                     <label for="shipping_address" class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
@@ -246,10 +255,9 @@ require_once __DIR__ . '/../layouts/header.php';
                                     <label for="payment_method" class="form-label">Phương thức thanh toán <span class="text-danger">*</span></label>
                                     <select class="form-select" id="payment_method" name="payment_method" required>
                                         <option value="">-- Chọn phương thức thanh toán --</option>
-                                        <option value="Tiền mặt">Tiền mặt</option>
-                                        <option value="Chuyển khoản">Chuyển khoản</option>
-                                        <option value="Thẻ tín dụng">Thẻ tín dụng</option>
                                         <option value="COD">COD (Thanh toán khi nhận hàng)</option>
+                                        <option value="Bank Transfer">Chuyển khoản</option>
+                                        <option value="E-Wallet">Ví điện tử</option>
                                     </select>
                                 </div>
                                 
@@ -636,25 +644,53 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
-        const customerId = document.getElementById('customer_id').value;
-        const shippingAddress = document.getElementById('shipping_address').value;
+        const customerFullname = document.getElementById('customer_fullname').value.trim();
+        const customerPhone = document.getElementById('customer_phone').value.trim();
+        const shippingAddress = document.getElementById('shipping_address').value.trim();
         const paymentMethod = document.getElementById('payment_method').value;
         
-        if (!customerId) {
+        if (!customerFullname) {
             e.preventDefault();
-            alert('Vui lòng chọn khách hàng');
+            alert('Vui lòng nhập họ và tên khách hàng');
+            document.getElementById('customer_fullname').focus();
             return false;
         }
         
-        if (!shippingAddress.trim()) {
+        if (!customerPhone) {
+            e.preventDefault();
+            alert('Vui lòng nhập số điện thoại khách hàng');
+            document.getElementById('customer_phone').focus();
+            return false;
+        }
+        
+        // Validate số điện thoại
+        if (!/^[0-9]{10,11}$/.test(customerPhone)) {
+            e.preventDefault();
+            alert('Số điện thoại phải có 10-11 chữ số');
+            document.getElementById('customer_phone').focus();
+            return false;
+        }
+        
+        // Validate email nếu có
+        const customerEmail = document.getElementById('customer_email').value.trim();
+        if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+            e.preventDefault();
+            alert('Email không hợp lệ');
+            document.getElementById('customer_email').focus();
+            return false;
+        }
+        
+        if (!shippingAddress) {
             e.preventDefault();
             alert('Vui lòng nhập địa chỉ giao hàng');
+            document.getElementById('shipping_address').focus();
             return false;
         }
         
         if (!paymentMethod) {
             e.preventDefault();
             alert('Vui lòng chọn phương thức thanh toán');
+            document.getElementById('payment_method').focus();
             return false;
         }
         
@@ -668,6 +704,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Show alert message (removed UI alerts)
+    
+    // Auto-format số điện thoại
+    const customerPhoneInput = document.getElementById('customer_phone');
+    if (customerPhoneInput) {
+        customerPhoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 11) {
+                value = value.substring(0, 11);
+            }
+            e.target.value = value;
+        });
+    }
+    
+    // Tự động điền địa chỉ giao hàng từ địa chỉ khách hàng (nếu có)
+    const customerAddressInput = document.getElementById('customer_address');
+    const shippingAddressInput = document.getElementById('shipping_address');
+    if (customerAddressInput && shippingAddressInput) {
+        customerAddressInput.addEventListener('blur', function() {
+            // Chỉ tự động điền nếu địa chỉ giao hàng đang trống
+            if (!shippingAddressInput.value.trim() && this.value.trim()) {
+                shippingAddressInput.value = this.value.trim();
+            }
+        });
+    }
     
     // Initialize tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

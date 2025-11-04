@@ -71,8 +71,7 @@ class OrderController {
      * Hiển thị form tạo đơn hàng mới
      */
     public function create() {
-        // Lấy danh sách khách hàng và sản phẩm
-        $customers = $this->customer->getAll()->fetchAll();
+        // Lấy danh sách sản phẩm
         $products = $this->product->getActiveProducts()->fetchAll();
         
         require_once __DIR__ . '/../views/orders/create.php';
@@ -93,8 +92,95 @@ class OrderController {
         }
         
         try {
+            // Validate và xử lý thông tin khách hàng
+            $customer_fullname = sanitizeInput($_POST['customer_fullname']);
+            $customer_phone = sanitizeInput($_POST['customer_phone']);
+            $customer_email = !empty($_POST['customer_email']) ? sanitizeInput($_POST['customer_email']) : null;
+            $customer_address = !empty($_POST['customer_address']) ? sanitizeInput($_POST['customer_address']) : null;
+            
+            // Validate thông tin khách hàng
+            if (empty($customer_fullname)) {
+                throw new Exception("Họ tên khách hàng không được để trống");
+            }
+            
+            if (empty($customer_phone)) {
+                throw new Exception("Số điện thoại khách hàng không được để trống");
+            }
+            
+            // Validate số điện thoại
+            if (!preg_match('/^[0-9]{10,11}$/', $customer_phone)) {
+                throw new Exception("Số điện thoại phải có 10-11 chữ số");
+            }
+            
+            // Validate email nếu có
+            if (!empty($customer_email) && !filter_var($customer_email, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Email không hợp lệ");
+            }
+            
+            // Kiểm tra xem số điện thoại đã tồn tại chưa
+            $checkQuery = "SELECT customer_id FROM customers WHERE phone = :phone AND status = 'Active' LIMIT 1";
+            $checkStmt = $this->db->prepare($checkQuery);
+            $checkStmt->bindParam(':phone', $customer_phone);
+            $checkStmt->execute();
+            
+            if ($checkStmt->rowCount() > 0) {
+                // Nếu số điện thoại đã tồn tại, lấy ID của khách hàng đó
+                $existing_customer = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                $customer_id = $existing_customer['customer_id'];
+                
+                // Cập nhật thông tin khách hàng nếu có thay đổi
+                $this->customer->getById($customer_id);
+                $update_needed = false;
+                
+                if ($this->customer->fullname !== $customer_fullname) {
+                    $this->customer->fullname = $customer_fullname;
+                    $update_needed = true;
+                }
+                
+                if (!empty($customer_email) && $this->customer->email !== $customer_email) {
+                    // Kiểm tra email trùng lặp trước khi cập nhật
+                    $emailCheckQuery = "SELECT customer_id FROM customers WHERE email = :email AND customer_id != :customer_id LIMIT 1";
+                    $emailCheckStmt = $this->db->prepare($emailCheckQuery);
+                    $emailCheckStmt->bindParam(':email', $customer_email);
+                    $emailCheckStmt->bindParam(':customer_id', $customer_id, PDO::PARAM_INT);
+                    $emailCheckStmt->execute();
+                    
+                    if ($emailCheckStmt->rowCount() === 0) {
+                        $this->customer->email = $customer_email;
+                        $update_needed = true;
+                    }
+                }
+                
+                if (!empty($customer_address) && $this->customer->address !== $customer_address) {
+                    $this->customer->address = $customer_address;
+                    $update_needed = true;
+                }
+                
+                if ($update_needed) {
+                    $this->customer->update();
+                }
+            } else {
+                // Nếu chưa tồn tại, tạo khách hàng mới
+                try {
+                    $this->customer->fullname = $customer_fullname;
+                    $this->customer->phone = $customer_phone;
+                    $this->customer->email = $customer_email;
+                    $this->customer->address = $customer_address;
+                    $this->customer->status = 'Active';
+                    
+                    $customer_id = $this->customer->create();
+                    
+                    if (!$customer_id) {
+                        throw new Exception("Có lỗi xảy ra khi tạo khách hàng mới");
+                    }
+                } catch (Exception $e) {
+                    // Nếu có lỗi khi tạo khách hàng (ví dụ: email trùng lặp), throw lại exception
+                    throw new Exception("Lỗi khi tạo khách hàng: " . $e->getMessage());
+                }
+            }
+            
             // Lấy dữ liệu từ form
-            $this->order->customer_id = (int)$_POST['customer_id'];
+            $this->order->customer_id = $customer_id;
             $this->order->shipping_address = sanitizeInput($_POST['shipping_address']);
             $this->order->shipping_note = isset($_POST['shipping_note']) ? sanitizeInput($_POST['shipping_note']) : '';
             $this->order->payment_method = isset($_POST['payment_method']) ? sanitizeInput($_POST['payment_method']) : 'COD';
