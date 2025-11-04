@@ -37,35 +37,78 @@ require_once __DIR__ . '/../layouts/header.php';
             </div>
 
             <div class="form-group mb-4">
-                <label for="product_id" class="form-label fw-medium">Sản phẩm <span class="text-danger">*</span></label>
-                <select class="form-select form-select-lg" id="product_id" name="product_id" required>
-                    <option value="">Chọn sản phẩm</option>
-                    <?php foreach ($products as $product): ?>
-                        <option value="<?php echo $product['product_id']; ?>" 
-                                data-stock="<?php echo $product['stock_quantity']; ?>"
-                                data-price="<?php echo $product['price']; ?>"
-                                data-status="<?php echo $product['status']; ?>"
-                                data-manufacture="<?php echo $product['manufacture_date']; ?>"
-                                data-expiry="<?php echo $product['expiry_date']; ?>"
-                                <?php echo (isset($_SESSION['form_data']['product_id']) && $_SESSION['form_data']['product_id'] == $product['product_id']) ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($product['product_code'] . ' - ' . $product['product_name']); ?>
-                            <span class="text-muted">(Tồn: <?php echo number_format($product['stock_quantity']); ?>)</span>
-                            <span class="<?php echo $product['status'] === 'Expired' ? 'text-danger fw-bold' : ($product['status'] === 'Out of stock' ? 'text-warning fw-bold' : 'text-success'); ?>">
-                                - <?php 
-                                    switch($product['status']) {
-                                        case 'Expired': echo 'HẾT HẠN'; break;
-                                        case 'Out of stock': echo 'HẾT HÀNG'; break;
-                                        case 'Active': echo 'CÒN HẠN'; break;
-                                        default: echo strtoupper($product['status']); break;
-                                    }
-                                ?>
-                            </span>
-                            <?php if ($product['status'] === 'Expired'): ?>
-                                <span class="text-muted small">(HSD: <?php echo date('d/m/Y', strtotime($product['expiry_date'])); ?>)</span>
-                            <?php endif; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <label for="product_search" class="form-label fw-medium">Sản phẩm <span class="text-danger">*</span></label>
+                
+                <!-- Custom searchable dropdown -->
+                <div class="position-relative mb-3" id="product-dropdown-wrapper" style="position: relative !important; z-index: 100;">
+                    <!-- Search input -->
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" 
+                               class="form-control" 
+                               id="product_search" 
+                               placeholder="Tìm kiếm theo mã hoặc tên sản phẩm..."
+                               autocomplete="off"
+                               readonly
+                               style="cursor: pointer;">
+                        <span class="input-group-text" style="cursor: pointer;" id="dropdown-toggle">
+                            <i class="fas fa-chevron-down" id="dropdown-icon"></i>
+                        </span>
+                    </div>
+                    
+                    <!-- Dropdown list -->
+                    <div class="border rounded bg-white shadow-lg" id="product-dropdown" style="display: none; max-height: 300px; position: absolute; width: 100%; z-index: 1050; top: 100%; left: 0; margin-top: 2px; background: white; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
+                        <div class="p-2 border-bottom bg-white" style="position: sticky; top: 0; z-index: 11;">
+                            <input type="text" 
+                                   class="form-control form-control-sm" 
+                                   id="product_filter" 
+                                   placeholder="Nhập mã hoặc tên để tìm kiếm..."
+                                   autocomplete="off">
+                        </div>
+                        <div id="product-list" style="max-height: 250px; overflow-y: auto; overflow-x: hidden;">
+                            <?php foreach ($products as $product): ?>
+                                <div class="dropdown-item product-option p-2 border-bottom" 
+                                     style="cursor: pointer;"
+                                     data-id="<?php echo $product['product_id']; ?>"
+                                     data-stock="<?php echo $product['stock_quantity']; ?>"
+                                     data-price="<?php echo $product['price']; ?>"
+                                     data-status="<?php echo $product['status']; ?>"
+                                     data-manufacture="<?php echo $product['manufacture_date']; ?>"
+                                     data-expiry="<?php echo $product['expiry_date']; ?>"
+                                     data-code="<?php echo htmlspecialchars(strtolower($product['product_code'])); ?>"
+                                     data-name="<?php echo htmlspecialchars(strtolower($product['product_name'])); ?>"
+                                     data-display="<?php echo htmlspecialchars($product['product_code'] . ' - ' . $product['product_name']); ?>">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong><?php echo htmlspecialchars($product['product_code'] . ' - ' . $product['product_name']); ?></strong>
+                                            <div class="text-muted small">(Tồn: <?php echo number_format($product['stock_quantity']); ?>)</div>
+                                        </div>
+                                        <span class="<?php echo $product['status'] === 'Expired' ? 'text-danger fw-bold' : ($product['status'] === 'Out of stock' ? 'text-warning fw-bold' : 'text-success'); ?>">
+                                            <?php 
+                                                switch($product['status']) {
+                                                    case 'Expired': echo 'HẾT HẠN'; break;
+                                                    case 'Out of stock': echo 'HẾT HÀNG'; break;
+                                                    case 'Active': echo 'CÒN HẠN'; break;
+                                                    default: echo strtoupper($product['status']); break;
+                                                }
+                                            ?>
+                                        </span>
+                                    </div>
+                                    <?php if ($product['status'] === 'Expired'): ?>
+                                        <div class="text-muted small mt-1">(HSD: <?php echo date('d/m/Y', strtotime($product['expiry_date'])); ?>)</div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div id="no-results" class="p-3 text-center text-muted" style="display: none;">
+                            Không tìm thấy sản phẩm
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden input for form submission -->
+                    <input type="hidden" id="product_id" name="product_id" required>
+                </div>
+                
                 <div id="product-warning" class="alert alert-warning mt-2" style="display: none;">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     <strong>Cảnh báo:</strong> Sản phẩm này đã hết hạn. Bạn sẽ cần cập nhật thông tin ngày sản xuất và hạn sử dụng mới để tiếp tục nhập kho.
@@ -166,35 +209,187 @@ require_once __DIR__ . '/../layouts/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const productSelect = document.getElementById('product_id');
+    const productSearch = document.getElementById('product_search');
+    const productFilter = document.getElementById('product_filter');
+    const productDropdown = document.getElementById('product-dropdown');
+    const productList = document.getElementById('product-list');
+    const productOptions = document.querySelectorAll('.product-option');
+    const productIdInput = document.getElementById('product_id');
+    const dropdownToggle = document.getElementById('dropdown-toggle');
+    const dropdownIcon = document.getElementById('dropdown-icon');
     const quantityInput = document.getElementById('quantity');
     const stockAfterSpan = document.getElementById('stock_after');
+    const noResults = document.getElementById('no-results');
     
+    let selectedProduct = null;
+
+    // Toggle dropdown
+    function toggleDropdown(e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        const isVisible = productDropdown.style.display === 'block';
+        if (isVisible) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    }
+
+    // Mở dropdown
+    function openDropdown(e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        productDropdown.style.display = 'block';
+        dropdownIcon.className = 'fas fa-chevron-up';
+        productFilter.focus();
+        filterProducts('');
+    }
+
+    // Đóng dropdown
+    function closeDropdown() {
+        productDropdown.style.display = 'none';
+        dropdownIcon.className = 'fas fa-chevron-down';
+    }
+
+    // Filter sản phẩm
+    function filterProducts(searchTerm) {
+        searchTerm = searchTerm.toLowerCase().trim();
+        let visibleCount = 0;
+
+        productOptions.forEach(function(option) {
+            const productCode = option.getAttribute('data-code') || '';
+            const productName = option.getAttribute('data-name') || '';
+            
+            if (searchTerm === '' || productCode.includes(searchTerm) || productName.includes(searchTerm)) {
+                option.style.display = '';
+                visibleCount++;
+            } else {
+                option.style.display = 'none';
+            }
+        });
+
+        if (visibleCount === 0 && searchTerm !== '') {
+            noResults.style.display = 'block';
+        } else {
+            noResults.style.display = 'none';
+        }
+    }
+
+    // Chọn sản phẩm
+    function selectProduct(option) {
+        const productId = option.getAttribute('data-id');
+        const displayText = option.getAttribute('data-display');
+        const stock = option.getAttribute('data-stock');
+        const status = option.getAttribute('data-status');
+        const manufacture = option.getAttribute('data-manufacture');
+        const expiry = option.getAttribute('data-expiry');
+        
+        productIdInput.value = productId;
+        productSearch.value = displayText;
+        selectedProduct = {
+            id: productId,
+            stock: parseInt(stock) || 0,
+            status: status,
+            manufacture: manufacture,
+            expiry: expiry
+        };
+        
+        closeDropdown();
+        updateStockAfter();
+        toggleExpiredProductInfo();
+        toggleProductWarning();
+        
+        // Highlight selected option
+        productOptions.forEach(function(opt) {
+            opt.style.backgroundColor = '';
+        });
+        option.style.backgroundColor = '#e7f3ff';
+    }
+
+    // Event listeners
+    productSearch.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openDropdown(e);
+    });
+    
+    dropdownToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleDropdown(e);
+    });
+
+    productFilter.addEventListener('input', function() {
+        filterProducts(this.value);
+    });
+    
+    productFilter.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+    
+    // Ngăn đóng dropdown khi click vào bất kỳ phần nào của dropdown
+    if (productDropdown) {
+        productDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+
+    productOptions.forEach(function(option) {
+        option.addEventListener('click', function(e) {
+            e.stopPropagation();
+            selectProduct(this);
+        });
+        
+        option.addEventListener('mouseenter', function() {
+            if (this.style.backgroundColor !== '#e7f3ff') {
+                this.style.backgroundColor = '#f8f9fa';
+            }
+        });
+        
+        option.addEventListener('mouseleave', function() {
+            if (this.style.backgroundColor !== '#e7f3ff') {
+                this.style.backgroundColor = '';
+            }
+        });
+    });
+
+    // Chỉ đóng dropdown khi click vào toggle hoặc chọn sản phẩm
+
+    // Không cho phép nhập trực tiếp vào search box
+    productSearch.addEventListener('keydown', function(e) {
+        e.preventDefault();
+        if (e.key === 'Enter' || e.key === ' ') {
+            openDropdown(e);
+        }
+    });
+
     // Cập nhật tồn kho sau khi nhập
     function updateStockAfter() {
-        const selectedOption = productSelect.options[productSelect.selectedIndex];
-        if (selectedOption.value) {
-            const currentStock = parseInt(selectedOption.dataset.stock) || 0;
+        if (selectedProduct && selectedProduct.id) {
+            const currentStock = selectedProduct.stock || 0;
             const quantity = parseInt(quantityInput.value) || 0;
             stockAfterSpan.textContent = currentStock + quantity;
         } else {
             stockAfterSpan.textContent = '-';
         }
     }
-    
+
     // Lắng nghe sự kiện thay đổi sản phẩm
-    productSelect.addEventListener('change', function() {
+    function onProductChange() {
         updateStockAfter();
         toggleExpiredProductInfo();
         toggleProductWarning();
-    });
+    }
     
-    // Hiển thị/ẩn cảnh báo sản phẩm hết hạn
+        // Hiển thị/ẩn cảnh báo sản phẩm hết hạn
     function toggleProductWarning() {
-        const selectedOption = productSelect.options[productSelect.selectedIndex];
         const warningDiv = document.getElementById('product-warning');
-        
-        if (selectedOption && selectedOption.value && selectedOption.dataset.status === 'Expired') {
+
+        if (selectedProduct && selectedProduct.id && selectedProduct.status === 'Expired') {
             warningDiv.style.display = 'block';
         } else {
             warningDiv.style.display = 'none';
@@ -204,20 +399,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Lắng nghe sự kiện thay đổi số lượng
     quantityInput.addEventListener('input', updateStockAfter);
     
-    // Hiển thị/ẩn form cập nhật thông tin cho sản phẩm hết hạn
+        // Hiển thị/ẩn form cập nhật thông tin cho sản phẩm hết hạn
     function toggleExpiredProductInfo() {
-        const selectedOption = productSelect.options[productSelect.selectedIndex];
         const expiredInfo = document.getElementById('expired-product-info');
         const newManufactureDate = document.getElementById('new_manufacture_date');
         const newExpiryDate = document.getElementById('new_expiry_date');
         const confirmCheckbox = document.getElementById('confirm_expired_update');
-        
+
         if (!expiredInfo || !newManufactureDate || !newExpiryDate) {
             return;
         }
-        
+
         // Chỉ hiện khi chọn sản phẩm hết hạn
-        if (selectedOption && selectedOption.value && selectedOption.dataset.status === 'Expired') {
+        if (selectedProduct && selectedProduct.id && selectedProduct.status === 'Expired') {
             expiredInfo.style.display = 'block';
             newManufactureDate.required = true;
             newExpiryDate.required = true;
@@ -270,7 +464,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Khởi tạo giá trị ban đầu
+    // Đảm bảo dropdown đóng khi khởi tạo
+    closeDropdown();
+    
+    // Khởi tạo giá trị ban đầu - khôi phục sản phẩm đã chọn nếu có
+    <?php if (isset($_SESSION['form_data']['product_id'])): ?>
+        const savedProductId = <?php echo (int)$_SESSION['form_data']['product_id']; ?>;
+        productOptions.forEach(function(option) {
+            if (parseInt(option.getAttribute('data-id')) === savedProductId) {
+                selectProduct(option);
+            }
+        });
+    <?php endif; ?>
+    
     updateStockAfter();
     
     // Xác nhận trước khi gửi form
