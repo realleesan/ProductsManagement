@@ -98,6 +98,8 @@ require_once __DIR__ . '/../layouts/header.php';
                         <th>Loại</th>
                         <th>Sản phẩm</th>
                         <th class="text-end">Số lượng</th>
+                        <th class="text-end">Đơn giá</th>
+                        <th class="text-end">Thành tiền</th>
                         <th class="text-end">Tồn kho sau</th>
                         <th>Người thực hiện</th>
                         <th>Thời gian</th>
@@ -119,6 +121,26 @@ require_once __DIR__ . '/../layouts/header.php';
                             <?php echo htmlspecialchars(($transaction['product_code'] ?? '') . ' - ' . ($transaction['product_name'] ?? '')); ?>
                         </td>
                         <td class="text-end"><?php echo number_format($transaction['quantity'] ?? 0); ?></td>
+                        <td class="text-end">
+                            <?php 
+                            $unit_price = $transaction['unit_price'] ?? 0;
+                            if ($unit_price > 0) {
+                                echo number_format($unit_price, 0, ',', '.') . ' VNĐ';
+                            } else {
+                                echo '-';
+                            }
+                            ?>
+                        </td>
+                        <td class="text-end">
+                            <?php 
+                            $total_amount = $transaction['total_amount'] ?? 0;
+                            if ($total_amount > 0) {
+                                echo '<strong class="text-primary">' . number_format($total_amount, 0, ',', '.') . ' VNĐ</strong>';
+                            } else {
+                                echo '-';
+                            }
+                            ?>
+                        </td>
                         <td class="text-end"><?php echo number_format($transaction['new_stock'] ?? 0); ?></td>
                         <td><?php echo htmlspecialchars($transaction['action_by'] ?? ''); ?></td>
                         <td><?php echo date('d/m/Y H:i', strtotime($transaction['action_at'] ?? 'now')); ?></td>

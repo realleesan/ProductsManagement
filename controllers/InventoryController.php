@@ -81,6 +81,8 @@ class InventoryController {
             // Lấy dữ liệu từ form
             $product_id = (int)$_POST['product_id'];
             $quantity = (int)$_POST['quantity'];
+            $unit_price = isset($_POST['unit_price']) ? (float)$_POST['unit_price'] : 0;
+            $total_amount = isset($_POST['total_amount']) ? (float)$_POST['total_amount'] : 0;
             $import_date = date('Y-m-d', strtotime($_POST['import_date']));
             $import_by = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : 'admin_demo';
             $note = sanitizeInput($_POST['note']);
@@ -94,6 +96,17 @@ class InventoryController {
             
             if ($quantity <= 0) {
                 $errors[] = 'Số lượng nhập phải lớn hơn 0';
+            }
+            
+            // Validate đơn giá
+            if ($unit_price < 1000 || $unit_price > 1000000000) {
+                $errors[] = 'Đơn giá nhập phải từ 1.000 đến 1.000.000.000 VNĐ';
+            }
+            
+            // Tính lại thành tiền để đảm bảo tính chính xác
+            $calculated_total = $quantity * $unit_price;
+            if (abs($total_amount - $calculated_total) > 0.01) {
+                $total_amount = $calculated_total; // Sử dụng giá trị tính toán từ server
             }
             
             if (strtotime($import_date) > time()) {
@@ -143,8 +156,8 @@ class InventoryController {
             try {
                 // 1. Tạo phiếu nhập
                 $query = "INSERT INTO warehouse_import 
-                         (import_code, product_id, quantity, import_date, import_by, note, status) 
-                         VALUES (:import_code, :product_id, :quantity, :import_date, :import_by, :note, :status)";
+                         (import_code, product_id, quantity, unit_price, total_amount, import_date, import_by, note, status) 
+                         VALUES (:import_code, :product_id, :quantity, :unit_price, :total_amount, :import_date, :import_by, :note, :status)";
                 
                 $import_code = 'PN' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                 
@@ -153,6 +166,8 @@ class InventoryController {
                     'import_code' => $import_code,
                     'product_id' => $product_id,
                     'quantity' => $quantity,
+                    'unit_price' => $unit_price,
+                    'total_amount' => $total_amount,
                     'import_date' => $import_date,
                     'import_by' => $import_by,
                     'note' => $note,
@@ -163,6 +178,8 @@ class InventoryController {
                 $stmt->bindValue(":import_code", $import_code);
                 $stmt->bindValue(":product_id", $product_id);
                 $stmt->bindValue(":quantity", $quantity);
+                $stmt->bindValue(":unit_price", $unit_price);
+                $stmt->bindValue(":total_amount", $total_amount);
                 $stmt->bindValue(":import_date", $import_date);
                 $stmt->bindValue(":import_by", $import_by);
                 $stmt->bindValue(":note", $note);
@@ -177,7 +194,29 @@ class InventoryController {
                 // 3. Cập nhật tồn kho
                 $this->inventory->updateStock($product_id, $quantity, 'import');
                 
-                // 4. Cập nhật thông tin sản phẩm nếu là sản phẩm hết hạn
+                // 4. Cập nhật giá sản phẩm nếu đơn giá nhập khác với giá hiện tại
+                if ($productFound) {
+                    $current_price = (float)$productFound['price'];
+                    if (abs($unit_price - $current_price) > 0.01) {
+                        // Đơn giá nhập khác với giá hiện tại, cập nhật giá bán mới
+                        $update_price_query = "UPDATE products 
+                                             SET price = :price,
+                                                 updated_at = NOW(),
+                                                 updated_by = :updated_by
+                                             WHERE product_id = :product_id";
+                        
+                        $update_price_stmt = $this->db->prepare($update_price_query);
+                        $update_price_stmt->bindValue(":price", $unit_price);
+                        $update_price_stmt->bindValue(":updated_by", $import_by);
+                        $update_price_stmt->bindValue(":product_id", $product_id);
+                        $update_price_stmt->execute();
+                        
+                        // Cập nhật note để ghi nhận việc cập nhật giá
+                        $note .= " | Cập nhật giá bán: " . number_format($current_price, 0, ',', '.') . " VNĐ → " . number_format($unit_price, 0, ',', '.') . " VNĐ";
+                    }
+                }
+                
+                // 5. Cập nhật thông tin sản phẩm nếu là sản phẩm hết hạn
                 if ($productFound && $this->product->status === 'Expired' && $new_manufacture_date && $new_expiry_date) {
                     // Xác định trạng thái mới dựa trên ngày hết hạn mới
                     $new_status = 'Active'; // Mặc định là Active vì đã có ngày hết hạn mới
@@ -208,10 +247,10 @@ class InventoryController {
                     $note .= " | Cập nhật thông tin: NSX: {$new_manufacture_date}, HSD: {$new_expiry_date}, Trạng thái: {$new_status}";
                 }
                 
-                // 5. Lấy tồn kho sau khi cập nhật
+                // 6. Lấy tồn kho sau khi cập nhật
                 $new_stock = $this->inventory->getCurrentStock($product_id);
                 
-                // 6. Ghi log lịch sử
+                // 7. Ghi log lịch sử (cập nhật note với thông tin đầy đủ)
                 $query = "INSERT INTO warehouse_history 
                          (reference_code, action_type, product_id, quantity, old_stock, new_stock, action_by, note) 
                          VALUES (:ref_code, :action_type, :product_id, :quantity, :old_stock, :new_stock, :action_by, :note)";
@@ -291,6 +330,8 @@ class InventoryController {
             // Lấy dữ liệu từ form
             $product_id = (int)$_POST['product_id'];
             $quantity = (int)$_POST['quantity'];
+            $unit_price = isset($_POST['unit_price']) ? (float)$_POST['unit_price'] : 0;
+            $total_amount = isset($_POST['total_amount']) ? (float)$_POST['total_amount'] : 0;
             $export_date = date('Y-m-d', strtotime($_POST['export_date']));
             $export_by = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : 'admin_demo';
             $reason = sanitizeInput($_POST['reason']);
@@ -301,6 +342,17 @@ class InventoryController {
             
             if ($quantity <= 0) {
                 $errors[] = 'Số lượng xuất phải lớn hơn 0';
+            }
+            
+            // Validate đơn giá
+            if ($unit_price < 1000 || $unit_price > 1000000000) {
+                $errors[] = 'Đơn giá xuất phải từ 1.000 đến 1.000.000.000 VNĐ';
+            }
+            
+            // Tính lại thành tiền để đảm bảo tính chính xác
+            $calculated_total = $quantity * $unit_price;
+            if (abs($total_amount - $calculated_total) > 0.01) {
+                $total_amount = $calculated_total; // Sử dụng giá trị tính toán từ server
             }
             
             if (strtotime($export_date) > time()) {
@@ -335,8 +387,8 @@ class InventoryController {
             try {
                 // 1. Tạo phiếu xuất
                 $query = "INSERT INTO warehouse_export 
-                         (export_code, product_id, quantity, export_date, export_by, reason, note, status) 
-                         VALUES (:export_code, :product_id, :quantity, :export_date, :export_by, :reason, :note, :status)";
+                         (export_code, product_id, quantity, unit_price, total_amount, export_date, export_by, reason, note, status) 
+                         VALUES (:export_code, :product_id, :quantity, :unit_price, :total_amount, :export_date, :export_by, :reason, :note, :status)";
                 
                 $export_code = 'PX' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                 
@@ -344,6 +396,8 @@ class InventoryController {
                 $stmt->bindValue(":export_code", $export_code);
                 $stmt->bindValue(":product_id", $product_id);
                 $stmt->bindValue(":quantity", $quantity);
+                $stmt->bindValue(":unit_price", $unit_price);
+                $stmt->bindValue(":total_amount", $total_amount);
                 $stmt->bindValue(":export_date", $export_date);
                 $stmt->bindValue(":export_by", $export_by);
                 $stmt->bindValue(":reason", $reason);

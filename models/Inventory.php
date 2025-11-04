@@ -59,9 +59,13 @@ class Inventory {
      * Lấy lịch sử nhập/xuất kho
      */
     public function getInventoryHistory($product_id = null, $type = null, $start_date = null, $end_date = null, $limit = 10, $offset = 0) {
-        $query = "SELECT h.*, p.product_name, p.product_code 
+        $query = "SELECT h.*, p.product_name, p.product_code,
+                         COALESCE(wi.unit_price, we.unit_price, 0) as unit_price,
+                         COALESCE(wi.total_amount, we.total_amount, 0) as total_amount
                  FROM warehouse_history h 
                  LEFT JOIN products p ON h.product_id = p.product_id 
+                 LEFT JOIN warehouse_import wi ON h.reference_code = wi.import_code AND h.action_type = 'Import'
+                 LEFT JOIN warehouse_export we ON h.reference_code = we.export_code AND h.action_type = 'Export'
                  WHERE 1=1";
                  
         $params = [];

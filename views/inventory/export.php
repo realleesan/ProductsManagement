@@ -122,6 +122,29 @@ require_once __DIR__ . '/../layouts/header.php';
                 </div>
             </div>
 
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="unit_price" class="form-label fw-medium">Đơn giá xuất <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-lg">
+                            <input type="number" class="form-control form-control-lg" id="unit_price" name="unit_price" 
+                                   min="1000" max="1000000000" step="1000" 
+                                   value="<?php echo isset($_SESSION['form_data']['unit_price']) ? htmlspecialchars($_SESSION['form_data']['unit_price']) : ''; ?>" 
+                                   required>
+                            <span class="input-group-text">VNĐ</span>
+                        </div>
+                        <div class="form-text">Đơn giá từ 1.000 đến 1.000.000.000 VNĐ</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label fw-medium">Thành tiền</label>
+                        <div class="form-control form-control-lg bg-light fw-bold text-primary" id="total_amount">0 VNĐ</div>
+                        <input type="hidden" id="total_amount_input" name="total_amount" value="0">
+                    </div>
+                </div>
+            </div>
+
             <div class="form-group mb-4">
                 <label for="reason" class="form-label fw-medium">Lý do xuất <span class="text-danger">*</span></label>
                 <select class="form-select form-select-lg" id="reason" name="reason" required>
@@ -164,6 +187,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const quantityInput = document.getElementById('quantity');
     const stockAfterSpan = document.getElementById('stock_after');
     const maxQuantitySpan = document.getElementById('max_quantity');
+    const unitPriceInput = document.getElementById('unit_price');
+    const totalAmountSpan = document.getElementById('total_amount');
+    const totalAmountInput = document.getElementById('total_amount_input');
     const noResults = document.getElementById('no-results');
     
     let selectedProduct = null;
@@ -229,16 +255,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const productId = option.getAttribute('data-id');
         const displayText = option.getAttribute('data-display');
         const stock = option.getAttribute('data-stock');
+        const price = parseFloat(option.getAttribute('data-price')) || 0;
         
         productIdInput.value = productId;
         productSearch.value = displayText;
         selectedProduct = {
             id: productId,
-            stock: parseInt(stock) || 0
+            stock: parseInt(stock) || 0,
+            price: price
         };
         
         closeDropdown();
         updateStockAfter();
+        updateUnitPriceFromProduct();
         
         // Highlight selected option
         productOptions.forEach(function(opt) {
@@ -330,10 +359,40 @@ document.addEventListener('DOMContentLoaded', function() {
             stockAfterSpan.textContent = '-';
             maxQuantitySpan.textContent = '0';
         }
+        updateTotalAmount();
+    }
+
+    // Cập nhật thành tiền
+    function updateTotalAmount() {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const unitPrice = parseFloat(unitPriceInput.value) || 0;
+        const totalAmount = quantity * unitPrice;
+        
+        if (totalAmount > 0) {
+            totalAmountSpan.textContent = new Intl.NumberFormat('vi-VN').format(totalAmount) + ' VNĐ';
+            totalAmountInput.value = totalAmount;
+        } else {
+            totalAmountSpan.textContent = '0 VNĐ';
+            totalAmountInput.value = 0;
+        }
+    }
+
+    // Kiểm tra đơn giá khi khởi tạo - tự động điền giá hiện tại của sản phẩm
+    function updateUnitPriceFromProduct() {
+        if (selectedProduct && selectedProduct.id && selectedProduct.price) {
+            const currentPrice = parseFloat(selectedProduct.price) || 0;
+            if (!unitPriceInput.value || unitPriceInput.value === '0') {
+                unitPriceInput.value = currentPrice;
+                updateTotalAmount();
+            }
+        }
     }
     
     // Lắng nghe sự kiện thay đổi số lượng
     quantityInput.addEventListener('input', updateStockAfter);
+    
+    // Lắng nghe sự kiện thay đổi đơn giá
+    unitPriceInput.addEventListener('input', updateTotalAmount);
     
     // Đảm bảo dropdown đóng khi khởi tạo
     closeDropdown();
@@ -352,7 +411,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Xác nhận trước khi gửi form
     document.getElementById('exportForm').addEventListener('submit', function(e) {
-        if (!confirm('Bạn có chắc chắn muốn lưu phiếu xuất kho này?')) {
+        // Validate đơn giá
+        const unitPrice = parseFloat(unitPriceInput.value) || 0;
+        if (unitPrice < 1000 || unitPrice > 1000000000) {
+            alert('Đơn giá xuất phải từ 1.000 đến 1.000.000.000 VNĐ!');
             e.preventDefault();
             return false;
         }
@@ -374,6 +436,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!document.getElementById('reason').value) {
             alert('Vui lòng chọn lý do xuất kho!');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (!confirm('Bạn có chắc chắn muốn lưu phiếu xuất kho này?')) {
             e.preventDefault();
             return false;
         }
