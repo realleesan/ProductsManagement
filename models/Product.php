@@ -44,9 +44,9 @@ class Product {
                   LEFT JOIN categories c ON p.category_id = c.category_id
                   WHERE 1=1";
         
-        // Tìm kiếm theo tên
+        // Tìm kiếm theo tên hoặc mã sản phẩm
         if (!empty($search)) {
-            $query .= " AND p.product_name LIKE :search";
+            $query .= " AND (p.product_name LIKE :search_name OR p.product_code LIKE :search_code)";
         }
         
         // Lọc theo danh mục
@@ -65,7 +65,8 @@ class Product {
         
         if (!empty($search)) {
             $search_param = "%{$search}%";
-            $stmt->bindParam(':search', $search_param);
+            $stmt->bindValue(':search_name', $search_param);
+            $stmt->bindValue(':search_code', $search_param);
         }
         
         if (!empty($category_id)) {
@@ -106,7 +107,7 @@ class Product {
         $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " WHERE 1=1";
         
         if (!empty($search)) {
-            $query .= " AND product_name LIKE :search";
+            $query .= " AND (product_name LIKE :search_name OR product_code LIKE :search_code)";
         }
         
         if (!empty($category_id)) {
@@ -121,7 +122,8 @@ class Product {
         
         if (!empty($search)) {
             $search_param = "%{$search}%";
-            $stmt->bindParam(':search', $search_param);
+            $stmt->bindValue(':search_name', $search_param);
+            $stmt->bindValue(':search_code', $search_param);
         }
         
         if (!empty($category_id)) {

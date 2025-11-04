@@ -19,7 +19,7 @@ require_once __DIR__ . '/../layouts/header.php';
         <div class="filter-group">
             <input type="text" 
                    name="search" 
-                   placeholder="Tìm kiếm theo tên sản phẩm..." 
+                   placeholder="Tìm kiếm sản phẩm..." 
                    value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>"
                    class="form-control">
         </div>
