@@ -196,7 +196,14 @@ class InventoryController {
                 
                 // 4. Cập nhật giá sản phẩm nếu đơn giá nhập khác với giá hiện tại
                 if ($productFound) {
-                    $current_price = (float)$productFound['price'];
+                    // Lấy giá hiện tại từ database TRƯỚC KHI cập nhật giá mới
+                    $get_price_query = "SELECT price FROM products WHERE product_id = :product_id";
+                    $get_price_stmt = $this->db->prepare($get_price_query);
+                    $get_price_stmt->bindValue(":product_id", $product_id);
+                    $get_price_stmt->execute();
+                    $price_row = $get_price_stmt->fetch(PDO::FETCH_ASSOC);
+                    $current_price = $price_row ? (float)$price_row['price'] : 0;
+                    
                     if (abs($unit_price - $current_price) > 0.01) {
                         // Đơn giá nhập khác với giá hiện tại, cập nhật giá bán mới
                         $update_price_query = "UPDATE products 
@@ -586,7 +593,15 @@ class InventoryController {
             return;
         }
 
-        $stmt = $this->db->prepare("SELECT h.*, p.product_name, p.product_code FROM warehouse_history h LEFT JOIN products p ON p.product_id = h.product_id WHERE h.history_id = :id");
+        // Lấy thông tin lịch sử và đơn giá từ warehouse_import hoặc warehouse_export
+        $stmt = $this->db->prepare("SELECT h.*, p.product_name, p.product_code,
+                                         COALESCE(wi.unit_price, we.unit_price, 0) as unit_price,
+                                         COALESCE(wi.total_amount, we.total_amount, 0) as total_amount
+                                     FROM warehouse_history h 
+                                     LEFT JOIN products p ON p.product_id = h.product_id 
+                                     LEFT JOIN warehouse_import wi ON h.reference_code = wi.import_code AND h.action_type = 'Import'
+                                     LEFT JOIN warehouse_export we ON h.reference_code = we.export_code AND h.action_type = 'Export'
+                                     WHERE h.history_id = :id");
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $history = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -611,6 +626,7 @@ class InventoryController {
 
         $id = (int)($_POST['history_id'] ?? 0);
         $new_quantity = (int)($_POST['quantity'] ?? 0);
+        $new_unit_price = isset($_POST['unit_price']) ? (float)$_POST['unit_price'] : 0;
         $note = sanitizeInput($_POST['note'] ?? '');
 
         if ($id <= 0 || $new_quantity < 0) {
@@ -618,6 +634,16 @@ class InventoryController {
             redirect('?controller=InventoryController&action=index');
             return;
         }
+
+        // Validate đơn giá
+        if ($new_unit_price < 1000 || $new_unit_price > 1000000000) {
+            setFlashMessage('error', 'Đơn giá phải từ 1.000 đến 1.000.000.000 VNĐ');
+            redirect('?controller=InventoryController&action=edit&id=' . $id);
+            return;
+        }
+
+        // Tính lại thành tiền
+        $new_total_amount = $new_quantity * $new_unit_price;
 
         try {
             // Lấy bản ghi hiện tại
@@ -635,11 +661,88 @@ class InventoryController {
             $product_id = (int)$history['product_id'];
             $old_quantity = (int)$history['quantity'];
             $action_type = $history['action_type'];
+            $reference_code = $history['reference_code'];
+            $updated_by = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : 'admin_demo';
+
+            // Lấy đơn giá cũ từ warehouse_import hoặc warehouse_export
+            if ($action_type === 'Import') {
+                $get_old_price_query = "SELECT unit_price FROM warehouse_import WHERE import_code = :reference_code";
+            } else {
+                $get_old_price_query = "SELECT unit_price FROM warehouse_export WHERE export_code = :reference_code";
+            }
+            $get_old_price_stmt = $this->db->prepare($get_old_price_query);
+            $get_old_price_stmt->bindValue(':reference_code', $reference_code);
+            $get_old_price_stmt->execute();
+            $old_price_row = $get_old_price_stmt->fetch(PDO::FETCH_ASSOC);
+            $old_unit_price = $old_price_row ? (float)$old_price_row['unit_price'] : 0;
+
+            // Lấy giá hiện tại của sản phẩm từ database TRƯỚC KHI cập nhật
+            $get_current_price_query = "SELECT price FROM products WHERE product_id = :product_id";
+            $get_current_price_stmt = $this->db->prepare($get_current_price_query);
+            $get_current_price_stmt->bindValue(":product_id", $product_id);
+            $get_current_price_stmt->execute();
+            $current_price_row = $get_current_price_stmt->fetch(PDO::FETCH_ASSOC);
+            $current_product_price = $current_price_row ? (float)$current_price_row['price'] : 0;
 
             // Tính chênh lệch để điều chỉnh tồn kho
             $delta = $new_quantity - $old_quantity; // dương: tăng, âm: giảm
 
             $this->db->beginTransaction();
+
+            // Cập nhật đơn giá và thành tiền trong warehouse_import hoặc warehouse_export
+            if ($action_type === 'Import') {
+                $update_table_query = "UPDATE warehouse_import 
+                                       SET unit_price = :unit_price, 
+                                           total_amount = :total_amount,
+                                           updated_at = NOW()
+                                       WHERE import_code = :reference_code";
+            } else {
+                $update_table_query = "UPDATE warehouse_export 
+                                       SET unit_price = :unit_price, 
+                                           total_amount = :total_amount,
+                                           updated_at = NOW()
+                                       WHERE export_code = :reference_code";
+            }
+            
+            $update_table_stmt = $this->db->prepare($update_table_query);
+            $update_table_stmt->bindValue(':unit_price', $new_unit_price);
+            $update_table_stmt->bindValue(':total_amount', $new_total_amount);
+            $update_table_stmt->bindValue(':reference_code', $reference_code);
+            $update_table_stmt->execute();
+
+            // Cập nhật giá sản phẩm nếu đơn giá trong phiếu nhập thay đổi (chỉ với phiếu nhập)
+            if ($action_type === 'Import' && abs($new_unit_price - $old_unit_price) > 0.01) {
+                // Cập nhật giá sản phẩm nếu đơn giá mới khác với giá hiện tại
+                if (abs($new_unit_price - $current_product_price) > 0.01) {
+                    $update_product_price_query = "UPDATE products 
+                                                 SET price = :price,
+                                                     updated_at = NOW(),
+                                                     updated_by = :updated_by
+                                                 WHERE product_id = :product_id";
+                    
+                    $update_product_price_stmt = $this->db->prepare($update_product_price_query);
+                    $update_product_price_stmt->bindValue(":price", $new_unit_price);
+                    $update_product_price_stmt->bindValue(":updated_by", $updated_by);
+                    $update_product_price_stmt->bindValue(":product_id", $product_id);
+                    $update_product_price_stmt->execute();
+                }
+                
+                // Cập nhật note để ghi nhận việc cập nhật giá (luôn cập nhật ghi chú khi đơn giá thay đổi)
+                $price_note = "Cập nhật giá bán: " . number_format($current_product_price, 0, ',', '.') . " VNĐ → " . number_format($new_unit_price, 0, ',', '.') . " VNĐ";
+                
+                // Xóa phần ghi chú về giá cũ (nếu có) và thêm ghi chú mới
+                // Tìm và xóa các phần ghi chú về giá cũ có định dạng "Cập nhật giá bán: ..."
+                $note = preg_replace('/\s*\|\s*Cập nhật giá bán:.*?(?=\s*\||$)/i', '', $note);
+                $note = preg_replace('/^Cập nhật giá bán:.*?(?=\s*\||$)/i', '', $note);
+                $note = trim($note);
+                
+                // Thêm ghi chú mới về giá
+                if (!empty($note)) {
+                    $note .= " | " . $price_note;
+                } else {
+                    $note = $price_note;
+                }
+            }
 
             if ($delta !== 0) {
                 if ($action_type === 'Import') {

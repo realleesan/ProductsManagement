@@ -39,6 +39,11 @@ require_once __DIR__ . '/../layouts/header.php';
                     <input type="number" min="0" class="form-control" id="quantity" name="quantity" value="<?php echo (int)$history['quantity']; ?>" required>
                 </div>
 
+                <div class="col-md-4">
+                    <label for="unit_price" class="form-label">Đơn giá (VNĐ)</label>
+                    <input type="number" min="1000" max="1000000000" step="1000" class="form-control" id="unit_price" name="unit_price" value="<?php echo isset($history['unit_price']) && $history['unit_price'] > 0 ? (float)$history['unit_price'] : ''; ?>" required>
+                </div>
+
                 <div class="col-md-8">
                     <label for="note" class="form-label">Ghi chú</label>
                     <input type="text" class="form-control" id="note" name="note" value="<?php echo htmlspecialchars($history['note'] ?? ''); ?>" placeholder="Ghi chú">
