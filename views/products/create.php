@@ -10,14 +10,14 @@ unset($_SESSION['form_data']);
 
 <div class="page-header">
     <h1><i class="fas fa-plus-circle"></i> Thêm sản phẩm mới</h1>
-    <a href="<?php echo BASE_URL; ?>/controllers/ProductController.php?action=index" class="btn btn-secondary">
+    <a href="<?php echo BASE_URL; ?>/?controller=ProductController&action=index" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Quay lại
     </a>
 </div>
 
 <div class="card">
     <div class="card-body">
-        <form method="POST" action="<?php echo BASE_URL; ?>/controllers/ProductController.php?action=store" enctype="multipart/form-data" class="product-form">
+        <form method="POST" action="<?php echo BASE_URL; ?>/?controller=ProductController&action=store" enctype="multipart/form-data" class="product-form">
             
             <div class="form-row">
                 <div class="form-group">
@@ -33,8 +33,8 @@ unset($_SESSION['form_data']);
                 </div>
                 
                 <div class="form-group">
-                    <label for="category_id">Danh mục <span class="required">*</span></label>
-                    <select id="category_id" name="category_id" class="form-control" required>
+                    <label for="category_id">Danh mục</label>
+                    <select id="category_id" name="category_id" class="form-control">
                         <option value="">-- Chọn danh mục --</option>
                         <?php foreach ($categories as $cat): ?>
                         <option value="<?php echo $cat['category_id']; ?>"
@@ -128,7 +128,7 @@ unset($_SESSION['form_data']);
             </div>
             
             <div class="form-group">
-                <label>Ảnh chính <span class="required">*</span></label>
+                <label>Ảnh chính</label>
                 <small class="form-text">Chấp nhận: JPG, JPEG, PNG. Tối đa 5MB.</small>
                 <div class="main-image-upload">
                     <label for="main_image" class="image-upload-label">
@@ -161,7 +161,7 @@ unset($_SESSION['form_data']);
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-save"></i> Lưu sản phẩm
                 </button>
-                <a href="<?php echo BASE_URL; ?>/controllers/ProductController.php?action=index" class="btn btn-secondary">
+                <a href="<?php echo BASE_URL; ?>/?controller=ProductController&action=index" class="btn btn-secondary">
                     <i class="fas fa-times"></i> Hủy bỏ
                 </a>
             </div>

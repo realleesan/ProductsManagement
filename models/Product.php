@@ -233,10 +233,7 @@ class Product {
             $errors[] = "Số lượng tồn kho phải >= 0";
         }
         
-        // Validate danh mục
-        if (empty($this->category_id)) {
-            $errors[] = "Vui lòng chọn danh mục sản phẩm";
-        }
+        // Validate danh mục (không bắt buộc)
         
         // Validate ngày sản xuất và hạn sử dụng
         if (empty($this->manufacture_date)) {
@@ -311,7 +308,11 @@ class Product {
         $stmt->bindParam(':description', $this->description);
         $stmt->bindParam(':price', $this->price);
         $stmt->bindParam(':stock', $this->stock_quantity, PDO::PARAM_INT);
-        $stmt->bindParam(':category_id', $this->category_id, PDO::PARAM_INT);
+        if ($this->category_id !== null) {
+            $stmt->bindParam(':category_id', $this->category_id, PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':category_id', null, PDO::PARAM_NULL);
+        }
         $stmt->bindParam(':mfg_date', $this->manufacture_date);
         $stmt->bindParam(':exp_date', $this->expiry_date);
         $stmt->bindParam(':status', $this->status);
@@ -361,7 +362,11 @@ class Product {
         $stmt->bindParam(':description', $this->description);
         $stmt->bindParam(':price', $this->price);
         $stmt->bindParam(':stock', $this->stock_quantity, PDO::PARAM_INT);
-        $stmt->bindParam(':category_id', $this->category_id, PDO::PARAM_INT);
+        if ($this->category_id !== null) {
+            $stmt->bindParam(':category_id', $this->category_id, PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':category_id', null, PDO::PARAM_NULL);
+        }
         $stmt->bindParam(':mfg_date', $this->manufacture_date);
         $stmt->bindParam(':exp_date', $this->expiry_date);
         $stmt->bindParam(':status', $this->status);

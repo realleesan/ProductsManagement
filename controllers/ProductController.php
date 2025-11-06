@@ -80,7 +80,7 @@ class ProductController {
             $this->product->description = sanitizeInput($_POST['description']);
             $this->product->price = (float)$_POST['price'];
             $this->product->stock_quantity = (int)$_POST['stock_quantity'];
-            $this->product->category_id = (int)$_POST['category_id'];
+            $this->product->category_id = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
             $this->product->manufacture_date = $_POST['manufacture_date'];
             $this->product->expiry_date = $_POST['expiry_date'];
             $this->product->status = sanitizeInput($_POST['status']);
@@ -106,13 +106,6 @@ class ProductController {
             $uploadResult = $this->handleImageUpload();
             $this->product->main_image = $uploadResult['main_image'];
             $this->product->gallery_images = $uploadResult['new_gallery_images'];
-
-            if (empty($this->product->main_image)) {
-                setFlashMessage('error', 'Vui lòng chọn ảnh chính cho sản phẩm');
-                $_SESSION['form_data'] = $_POST;
-                redirect('?controller=ProductController&action=create');
-                return;
-            }
             
             // Thêm sản phẩm
             if ($this->product->create()) {
@@ -131,7 +124,7 @@ class ProductController {
         } catch (Exception $e) {
             setFlashMessage('error', 'Lỗi: ' . $e->getMessage());
             $_SESSION['form_data'] = $_POST;
-            redirect('/controllers/ProductController.php?action=create');
+            redirect('?controller=ProductController&action=create');
         }
     }
     
@@ -180,7 +173,7 @@ class ProductController {
             $this->product->description = sanitizeInput($_POST['description']);
             $this->product->price = (float)$_POST['price'];
             $this->product->stock_quantity = (int)$_POST['stock_quantity'];
-            $this->product->category_id = (int)$_POST['category_id'];
+            $this->product->category_id = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
             $this->product->manufacture_date = $_POST['manufacture_date'];
             $this->product->expiry_date = $_POST['expiry_date'];
             $this->product->status = sanitizeInput($_POST['status']);
@@ -305,7 +298,7 @@ class ProductController {
             
         } catch (Exception $e) {
             setFlashMessage('error', 'Lỗi: ' . $e->getMessage());
-            redirect('/controllers/ProductController.php?action=edit&id=' . $id);
+            redirect('?controller=ProductController&action=edit&id=' . $id);
         }
     }
     
