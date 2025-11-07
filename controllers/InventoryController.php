@@ -25,6 +25,7 @@ class InventoryController {
      */
     public function index() {
         // Lấy tham số tìm kiếm và lọc
+        $search_code = isset($_GET['search_code']) ? sanitizeInput($_GET['search_code']) : null;
         $product_id = isset($_GET['product_id']) ? (int)$_GET['product_id'] : null;
         $type = isset($_GET['type']) ? sanitizeInput($_GET['type']) : '';
         $start_date = isset($_GET['start_date']) ? sanitizeInput($_GET['start_date']) : null;
@@ -36,8 +37,8 @@ class InventoryController {
         $offset = ($page - 1) * $limit;
         
         // Lấy danh sách lịch sử
-        $transactions = $this->inventory->getInventoryHistory($product_id, $type, $start_date, $end_date, $limit, $offset)->fetchAll(PDO::FETCH_ASSOC);
-        $total_items = $this->inventory->countInventoryHistory($product_id, $type, $start_date, $end_date);
+        $transactions = $this->inventory->getInventoryHistory($product_id, $type, $start_date, $end_date, $search_code, $limit, $offset)->fetchAll(PDO::FETCH_ASSOC);
+        $total_items = $this->inventory->countInventoryHistory($product_id, $type, $start_date, $end_date, $search_code);
         $total_pages = ceil($total_items / $limit);
         
         // Lấy danh sách sản phẩm cho filter
@@ -485,8 +486,10 @@ class InventoryController {
                 $transaction['product_id'], 
                 $transaction['action_type'],
                 null, 
-                null, 
-                10
+                null,
+                null,
+                10,
+                0
             );
         } else {
             // Xử lý import/export như cũ
@@ -515,8 +518,10 @@ class InventoryController {
                 $transaction['product_id'], 
                 $type === 'import' ? 'Import' : 'Export',
                 null, 
-                null, 
-                10
+                null,
+                null,
+                10,
+                0
             );
         }
         

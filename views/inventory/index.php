@@ -46,6 +46,12 @@ require_once __DIR__ . '/../layouts/header.php';
         <input type="hidden" name="action" value="index">
         
         <div class="filter-group">
+            <input type="text" name="search_code" class="form-control" 
+                   value="<?php echo htmlspecialchars($_GET['search_code'] ?? ''); ?>" 
+                   placeholder="Tìm kiếm theo mã phiếu">
+        </div>
+        
+        <div class="filter-group">
             <select name="product_id" class="form-control">
                 <option value="">Tất cả sản phẩm</option>
                 <?php foreach ($products as $p): ?>
@@ -172,7 +178,7 @@ require_once __DIR__ . '/../layouts/header.php';
         <?php if ($total_pages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
-                <a href="?action=index&page=<?php echo ($page - 1); ?><?php echo isset($_GET['product_id']) ? '&product_id=' . $_GET['product_id'] : ''; ?><?php echo isset($_GET['type']) ? '&type=' . $_GET['type'] : ''; ?><?php echo isset($_GET['start_date']) ? '&start_date=' . $_GET['start_date'] : ''; ?><?php echo isset($_GET['end_date']) ? '&end_date=' . $_GET['end_date'] : ''; ?>" 
+                <a href="?action=index&page=<?php echo ($page - 1); ?><?php echo isset($_GET['search_code']) && $_GET['search_code'] ? '&search_code=' . urlencode($_GET['search_code']) : ''; ?><?php echo isset($_GET['product_id']) ? '&product_id=' . $_GET['product_id'] : ''; ?><?php echo isset($_GET['type']) ? '&type=' . $_GET['type'] : ''; ?><?php echo isset($_GET['start_date']) ? '&start_date=' . $_GET['start_date'] : ''; ?><?php echo isset($_GET['end_date']) ? '&end_date=' . $_GET['end_date'] : ''; ?>" 
                    class="btn btn-sm btn-secondary">
                     <i class="fas fa-chevron-left"></i> Trước
                 </a>
@@ -181,7 +187,7 @@ require_once __DIR__ . '/../layouts/header.php';
                 <span class="page-info">Trang <?php echo $page; ?>/<?php echo $total_pages; ?></span>
                 
                 <?php if ($page < $total_pages): ?>
-                <a href="?action=index&page=<?php echo ($page + 1); ?><?php echo isset($_GET['product_id']) ? '&product_id=' . $_GET['product_id'] : ''; ?><?php echo isset($_GET['type']) ? '&type=' . $_GET['type'] : ''; ?><?php echo isset($_GET['start_date']) ? '&start_date=' . $_GET['start_date'] : ''; ?><?php echo isset($_GET['end_date']) ? '&end_date=' . $_GET['end_date'] : ''; ?>" 
+                <a href="?action=index&page=<?php echo ($page + 1); ?><?php echo isset($_GET['search_code']) && $_GET['search_code'] ? '&search_code=' . urlencode($_GET['search_code']) : ''; ?><?php echo isset($_GET['product_id']) ? '&product_id=' . $_GET['product_id'] : ''; ?><?php echo isset($_GET['type']) ? '&type=' . $_GET['type'] : ''; ?><?php echo isset($_GET['start_date']) ? '&start_date=' . $_GET['start_date'] : ''; ?><?php echo isset($_GET['end_date']) ? '&end_date=' . $_GET['end_date'] : ''; ?>" 
                    class="btn btn-sm btn-secondary">
                     Tiếp <i class="fas fa-chevron-right"></i>
                 </a>

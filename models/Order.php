@@ -315,8 +315,11 @@ class Order {
         
         // Áp dụng bộ lọc nếu có
         if (!empty($filters['search'])) {
-            $query .= " AND (o.order_code LIKE :search OR c.fullname LIKE :search OR c.phone LIKE :search)";
-            $params[':search'] = "%{$filters['search']}%";
+            $query .= " AND (o.order_code LIKE :search1 OR c.fullname LIKE :search2 OR c.phone LIKE :search3)";
+            $search_value = "%{$filters['search']}%";
+            $params[':search1'] = $search_value;
+            $params[':search2'] = $search_value;
+            $params[':search3'] = $search_value;
         }
         
         if (!empty($filters['status'])) {
@@ -371,8 +374,11 @@ class Order {
         
         // Áp dụng bộ lọc nếu có
         if (!empty($filters['search'])) {
-            $query .= " AND (o.order_code LIKE :search OR c.fullname LIKE :search OR c.phone LIKE :search)";
-            $params[':search'] = "%{$filters['search']}%";
+            $query .= " AND (o.order_code LIKE :search1 OR c.fullname LIKE :search2 OR c.phone LIKE :search3)";
+            $search_value = "%{$filters['search']}%";
+            $params[':search1'] = $search_value;
+            $params[':search2'] = $search_value;
+            $params[':search3'] = $search_value;
         }
         
         if (!empty($filters['status'])) {

@@ -55,6 +55,7 @@ if (file_exists($alert_path)) {
 <!-- Bộ lọc và tìm kiếm -->
 <div class="filter-section mb-4">
     <form method="GET" action="" class="filter-form">
+        <input type="hidden" name="controller" value="OrderController">
         <input type="hidden" name="action" value="index">
         
         <div class="filter-group">
@@ -78,17 +79,17 @@ if (file_exists($alert_path)) {
         
         <div class="filter-group">
             <input type="date" 
-                   name="from_date" 
+                   name="start_date" 
                    class="form-control" 
-                   value="<?php echo isset($_GET['from_date']) ? htmlspecialchars($_GET['from_date']) : ''; ?>"
+                   value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>"
                    placeholder="Từ ngày">
         </div>
         
         <div class="filter-group">
             <input type="date" 
-                   name="to_date" 
+                   name="end_date" 
                    class="form-control" 
-                   value="<?php echo isset($_GET['to_date']) ? htmlspecialchars($_GET['to_date']) : ''; ?>"
+                   value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>"
                    placeholder="Đến ngày">
         </div>
         
@@ -217,14 +218,30 @@ if (file_exists($alert_path)) {
         </div>
         
         <!-- Phân trang -->
-        <?php if ($total_pages > 1): ?>
+        <?php if ($total_pages > 1): 
+            // Tạo query string để giữ lại các tham số filter
+            $query_params = [];
+            if (!empty($_GET['search'])) {
+                $query_params[] = 'search=' . urlencode($_GET['search']);
+            }
+            if (!empty($_GET['status'])) {
+                $query_params[] = 'status=' . urlencode($_GET['status']);
+            }
+            if (!empty($_GET['start_date'])) {
+                $query_params[] = 'start_date=' . urlencode($_GET['start_date']);
+            }
+            if (!empty($_GET['end_date'])) {
+                $query_params[] = 'end_date=' . urlencode($_GET['end_date']);
+            }
+            $query_string = !empty($query_params) ? '&' . implode('&', $query_params) : '';
+        ?>
             <div class="card-footer bg-white border-top-0">
                 <nav aria-label="Page navigation">
                     <ul class="pagination justify-content-center mb-0">
                         <?php if ($page > 1): ?>
                             <li class="page-item">
                                 <a class="page-link" 
-                                   href="?controller=orders&action=index&page=<?= $page - 1 ?><?= !empty($query_string) ? '&' . $query_string : '' ?>" 
+                                   href="?controller=OrderController&action=index&page=<?= $page - 1 ?><?= $query_string ?>" 
                                    aria-label="Previous">
                                     <i class="fas fa-chevron-left"></i>
                                 </a>
@@ -237,14 +254,14 @@ if (file_exists($alert_path)) {
                         $start = max(1, $end - 4);
                         
                         if ($start > 1) {
-                            echo '<li class="page-item"><a class="page-link" href="?controller=orders&action=index&page=1' . (!empty($query_string) ? '&' . $query_string : '') . '">1</a></li>';
+                            echo '<li class="page-item"><a class="page-link" href="?controller=OrderController&action=index&page=1' . $query_string . '">1</a></li>';
                             if ($start > 2) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
                         }
                         
                         for ($i = $start; $i <= $end; $i++): 
                         ?>
                             <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                <a class="page-link" href="?controller=orders&action=index&page=<?= $i ?><?= !empty($query_string) ? '&' . $query_string : '' ?>">
+                                <a class="page-link" href="?controller=OrderController&action=index&page=<?= $i ?><?= $query_string ?>">
                                     <?= $i ?>
                                 </a>
                             </li>
@@ -253,14 +270,14 @@ if (file_exists($alert_path)) {
                         
                         if ($end < $total_pages) {
                             if ($end < $total_pages - 1) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                            echo '<li class="page-item"><a class="page-link" href="?controller=orders&action=index&page=' . $total_pages . (!empty($query_string) ? '&' . $query_string : '') . '">' . $total_pages . '</a></li>';
+                            echo '<li class="page-item"><a class="page-link" href="?controller=OrderController&action=index&page=' . $total_pages . $query_string . '">' . $total_pages . '</a></li>';
                         }
                         ?>
                         
                         <?php if ($page < $total_pages): ?>
                             <li class="page-item">
                                 <a class="page-link" 
-                                   href="?controller=orders&action=index&page=<?= $page + 1 ?><?= !empty($query_string) ? '&' . $query_string : '' ?>" 
+                                   href="?controller=OrderController&action=index&page=<?= $page + 1 ?><?= $query_string ?>" 
                                    aria-label="Next">
                                     <i class="fas fa-chevron-right"></i>
                                 </a>

@@ -58,7 +58,7 @@ class Inventory {
     /**
      * Lấy lịch sử nhập/xuất kho
      */
-    public function getInventoryHistory($product_id = null, $type = null, $start_date = null, $end_date = null, $limit = 10, $offset = 0) {
+    public function getInventoryHistory($product_id = null, $type = null, $start_date = null, $end_date = null, $search_code = null, $limit = 10, $offset = 0) {
         $query = "SELECT h.*, p.product_name, p.product_code,
                          COALESCE(wi.unit_price, we.unit_price, 0) as unit_price,
                          COALESCE(wi.total_amount, we.total_amount, 0) as total_amount
@@ -90,6 +90,11 @@ class Inventory {
             $params[':end_date'] = $end_date;
         }
         
+        if ($search_code) {
+            $query .= " AND h.reference_code LIKE :search_code";
+            $params[':search_code'] = '%' . $search_code . '%';
+        }
+        
         $query .= " ORDER BY h.action_at DESC LIMIT :limit OFFSET :offset";
         
         $stmt = $this->conn->prepare($query);
@@ -109,7 +114,7 @@ class Inventory {
     /**
      * Lấy tổng số bản ghi lịch sử
      */
-    public function countInventoryHistory($product_id = null, $type = null, $start_date = null, $end_date = null) {
+    public function countInventoryHistory($product_id = null, $type = null, $start_date = null, $end_date = null, $search_code = null) {
         $query = "SELECT COUNT(*) as total 
                  FROM warehouse_history h 
                  WHERE 1=1";
@@ -134,6 +139,11 @@ class Inventory {
         if ($end_date) {
             $query .= " AND DATE(h.action_at) <= :end_date";
             $params[':end_date'] = $end_date;
+        }
+        
+        if ($search_code) {
+            $query .= " AND h.reference_code LIKE :search_code";
+            $params[':search_code'] = '%' . $search_code . '%';
         }
         
         $stmt = $this->conn->prepare($query);
