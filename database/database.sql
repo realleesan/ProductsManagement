@@ -606,7 +606,7 @@ CREATE TABLE customers (
 -- =====================================================
 CREATE TABLE orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
-    order_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã đơn hàng, định dạng DHYYYYMMDDXXX',
+    order_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã đơn hàng, định dạng DH + 7 chữ số (ví dụ: DH1234567)',
     customer_id INT NOT NULL COMMENT 'Khách hàng đặt hàng',
     order_date DATETIME NOT NULL COMMENT 'Ngày đặt hàng',
     total_amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT 'Tổng tiền đơn hàng',
@@ -628,7 +628,7 @@ CREATE TABLE orders (
     
     -- Khóa ngoại và ràng buộc
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE RESTRICT,
-    CONSTRAINT chk_order_code_format CHECK (order_code REGEXP '^DH[0-9]{8}[0-9]{3}$'),
+    CONSTRAINT chk_order_code_format CHECK (order_code REGEXP '^DH[0-9]{7}$'),
     CONSTRAINT chk_order_amount CHECK (total_amount >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -810,8 +810,8 @@ INSERT INTO customers (customer_code, fullname, phone, email, address, status) V
 
 -- Thêm đơn hàng mẫu
 INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at) VALUES
-('DH20240101001', 1, '2024-01-01 10:00:00', 'COD', 'Hà Nội', 'Đang xử lý', 'admin', '2024-01-01 10:30:00'),
-('DH20240102001', 2, '2024-01-02 14:00:00', 'Bank Transfer', 'TP.HCM', 'Chờ xác nhận', NULL, NULL);
+('DH0000001', 1, '2024-01-01 10:00:00', 'COD', 'Hà Nội', 'Đang xử lý', 'admin', '2024-01-01 10:30:00'),
+('DH0000002', 2, '2024-01-02 14:00:00', 'Bank Transfer', 'TP.HCM', 'Chờ xác nhận', NULL, NULL);
 
 -- Thêm chi tiết đơn hàng mẫu
 INSERT INTO order_details (order_id, product_id, quantity, unit_price, total_price) VALUES
@@ -902,35 +902,35 @@ INSERT INTO customers (customer_code, fullname, phone, email, address, status) V
 
 -- Đơn hàng 1: Chờ xác nhận
 INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, shipping_note) VALUES
-('DH20240201001', 3, '2024-02-01 09:30:00', 'COD', 'Số 123 Đường Lê Lợi, Quận 1, TP. Đà Nẵng', 'Chờ xác nhận', 'Giao hàng trong giờ hành chính');
+('DH0000003', 3, '2024-02-01 09:30:00', 'COD', 'Số 123 Đường Lê Lợi, Quận 1, TP. Đà Nẵng', 'Chờ xác nhận', 'Giao hàng trong giờ hành chính');
 
 -- Đơn hàng 2: Đang xử lý
 INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, shipping_note) VALUES
-('DH20240202001', 4, '2024-02-02 14:15:00', 'Bank Transfer', 'Số 456 Đường Nguyễn Huệ, Quận Ninh Kiều, TP. Cần Thơ', 'Đang xử lý', 'admin', '2024-02-02 15:00:00', 'Kiểm tra kỹ trước khi đóng gói');
+('DH0000004', 4, '2024-02-02 14:15:00', 'Bank Transfer', 'Số 456 Đường Nguyễn Huệ, Quận Ninh Kiều, TP. Cần Thơ', 'Đang xử lý', 'admin', '2024-02-02 15:00:00', 'Kiểm tra kỹ trước khi đóng gói');
 
 -- Đơn hàng 3: Đang giao
 INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, shipping_note) VALUES
-('DH20240203001', 5, '2024-02-03 11:20:00', 'E-Wallet', 'Số 789 Đường Trần Hưng Đạo, Quận Hải Châu, TP. Đà Nẵng', 'Đang giao', 'admin', '2024-02-03 12:00:00', 'Giao hàng nhanh');
+('DH0000005', 5, '2024-02-03 11:20:00', 'E-Wallet', 'Số 789 Đường Trần Hưng Đạo, Quận Hải Châu, TP. Đà Nẵng', 'Đang giao', 'admin', '2024-02-03 12:00:00', 'Giao hàng nhanh');
 
 -- Đơn hàng 4: Hoàn tất
 INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, completed_by, completed_at, shipping_note) VALUES
-('DH20240204001', 6, '2024-02-04 16:45:00', 'COD', 'Số 321 Đường Lê Duẩn, Quận Thanh Khê, TP. Đà Nẵng', 'Hoàn tất', 'admin', '2024-02-04 17:00:00', 'staff1', '2024-02-05 10:30:00', 'Đã giao thành công');
+('DH0000006', 6, '2024-02-04 16:45:00', 'COD', 'Số 321 Đường Lê Duẩn, Quận Thanh Khê, TP. Đà Nẵng', 'Hoàn tất', 'admin', '2024-02-04 17:00:00', 'staff1', '2024-02-05 10:30:00', 'Đã giao thành công');
 
 -- Đơn hàng 5: Đã thanh toán
 INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, completed_by, completed_at, paid_by, paid_at, shipping_note) VALUES
-('DH20240205001', 7, '2024-02-05 13:10:00', 'Bank Transfer', 'Số 654 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh', 'Đã thanh toán', 'admin', '2024-02-05 13:30:00', 'staff2', '2024-02-06 09:15:00', 'staff2', '2024-02-06 14:20:00', 'Thanh toán qua chuyển khoản');
+('DH0000007', 7, '2024-02-05 13:10:00', 'Bank Transfer', 'Số 654 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh', 'Đã thanh toán', 'admin', '2024-02-05 13:30:00', 'staff2', '2024-02-06 09:15:00', 'staff2', '2024-02-06 14:20:00', 'Thanh toán qua chuyển khoản');
 
 -- Đơn hàng 6: Đã hủy
 INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, cancelled_by, cancelled_at, cancel_reason, shipping_note) VALUES
-('DH20240206001', 8, '2024-02-06 10:30:00', 'COD', 'Số 987 Đường Lý Thường Kiệt, Quận Hoàn Kiếm, TP. Hà Nội', 'Đã hủy', 'admin', '2024-02-06 11:00:00', 'admin', '2024-02-06 15:30:00', 'Khách hàng yêu cầu hủy do thay đổi ý định', 'Đơn hàng đã hủy');
+('DH0000008', 8, '2024-02-06 10:30:00', 'COD', 'Số 987 Đường Lý Thường Kiệt, Quận Hoàn Kiếm, TP. Hà Nội', 'Đã hủy', 'admin', '2024-02-06 11:00:00', 'admin', '2024-02-06 15:30:00', 'Khách hàng yêu cầu hủy do thay đổi ý định', 'Đơn hàng đã hủy');
 
 -- Đơn hàng 7: Chờ xác nhận (khách mới)
 INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, shipping_note) VALUES
-('DH20240207001', 9, '2024-02-07 08:45:00', 'E-Wallet', 'Số 147 Đường Võ Văn Tần, Quận 3, TP. Hồ Chí Minh', 'Chờ xác nhận', 'Khách hàng mới, ưu tiên xử lý');
+('DH0000009', 9, '2024-02-07 08:45:00', 'E-Wallet', 'Số 147 Đường Võ Văn Tần, Quận 3, TP. Hồ Chí Minh', 'Chờ xác nhận', 'Khách hàng mới, ưu tiên xử lý');
 
 -- Đơn hàng 8: Đang xử lý
 INSERT INTO orders (order_code, customer_id, order_date, payment_method, shipping_address, status, confirmed_by, confirmed_at, shipping_note) VALUES
-('DH20240208001', 10, '2024-02-08 15:20:00', 'Bank Transfer', 'Số 258 Đường Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Đang xử lý', 'admin', '2024-02-08 16:00:00', 'Đơn hàng lớn, cần kiểm tra kỹ');
+('DH0000010', 10, '2024-02-08 15:20:00', 'Bank Transfer', 'Số 258 Đường Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh', 'Đang xử lý', 'admin', '2024-02-08 16:00:00', 'Đơn hàng lớn, cần kiểm tra kỹ');
 
 -- =====================================================
 -- 5. BỔ SUNG CHI TIẾT ĐƠN HÀNG (ORDER_DETAILS)

@@ -65,8 +65,16 @@ class Order {
         $this->conn->beginTransaction();
         
         try {
-            // Tạo mã đơn hàng
-            $this->order_code = $this->generateOrderCode();
+            // Kiểm tra mã đơn hàng đã được cung cấp chưa
+            if (empty($this->order_code)) {
+                // Nếu chưa có mã đơn hàng, tự động tạo (fallback)
+                $this->order_code = $this->generateOrderCode();
+            } else {
+                // Validate format mã đơn hàng nếu được cung cấp
+                if (!preg_match('/^DH[0-9]{7}$/', $this->order_code)) {
+                    throw new Exception("Mã đơn hàng không hợp lệ. Phải có định dạng DH + 7 chữ số");
+                }
+            }
             
             // Nếu chưa có ngày đặt, sử dụng thời gian hiện tại
             if (empty($this->order_date)) {
@@ -114,7 +122,12 @@ class Order {
             $stmt->bindParam(":shipping_note", $this->shipping_note);
             
             if (!$stmt->execute()) {
-                throw new Exception("Lỗi khi tạo đơn hàng");
+                $errorInfo = $stmt->errorInfo();
+                $errorMessage = "Lỗi khi tạo đơn hàng";
+                if (!empty($errorInfo[2])) {
+                    $errorMessage .= ": " . $errorInfo[2];
+                }
+                throw new Exception($errorMessage);
             }
             
             $this->order_id = $this->conn->lastInsertId();
@@ -141,6 +154,11 @@ class Order {
             
             return $this->order_id;
             
+        } catch (PDOException $e) {
+            // Rollback transaction nếu có lỗi
+            $this->conn->rollBack();
+            error_log("PDO Error in Order::create(): " . $e->getMessage());
+            throw new Exception("Lỗi database: " . $e->getMessage());
         } catch (Exception $e) {
             // Rollback transaction nếu có lỗi
             $this->conn->rollBack();

@@ -214,6 +214,18 @@ require_once __DIR__ . '/../layouts/header.php';
                                 <h5 class="card-title mb-0"><i class="fas fa-user me-2 text-primary"></i> Thông tin khách hàng</h5>
                             </div>
                             <div class="card-body">
+                                <!-- Mã đơn hàng -->
+                                <div class="mb-3">
+                                    <label for="order_code" class="form-label">Mã đơn hàng <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="order_code" name="order_code" 
+                                           pattern="^DH[0-9]{7}$" 
+                                           maxlength="9" 
+                                           placeholder="DH1234567" 
+                                           required>
+                                    <div class="form-text">Nhập mã đơn hàng theo định dạng: DH + 7 chữ số (ví dụ: DH1234567)</div>
+                                    <div class="invalid-feedback" id="order_code_error"></div>
+                                </div>
+                                
                                 <!-- Thông tin khách hàng mới -->
                                 <div class="mb-3">
                                     <label for="customer_fullname" class="form-label">Họ và tên khách hàng <span class="text-danger">*</span></label>
@@ -648,6 +660,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const customerPhone = document.getElementById('customer_phone').value.trim();
         const shippingAddress = document.getElementById('shipping_address').value.trim();
         const paymentMethod = document.getElementById('payment_method').value;
+        const orderCode = document.getElementById('order_code').value.trim().toUpperCase();
+        
+        // Validate mã đơn hàng
+        if (!orderCode) {
+            e.preventDefault();
+            alert('Vui lòng nhập mã đơn hàng');
+            document.getElementById('order_code').focus();
+            return false;
+        }
+        
+        // Validate format mã đơn hàng: DH + 7 chữ số
+        if (!/^DH[0-9]{7}$/.test(orderCode)) {
+            e.preventDefault();
+            alert('Mã đơn hàng phải có định dạng DH + 7 chữ số (ví dụ: DH1234567)');
+            document.getElementById('order_code').focus();
+            return false;
+        }
         
         if (!customerFullname) {
             e.preventDefault();
@@ -697,6 +726,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update form data before submission
         updateFormData();
         
+        // Đảm bảo mã đơn hàng được gửi với chữ hoa
+        document.getElementById('order_code').value = orderCode;
+        
         console.log('Form validation passed, submitting...');
         
         // Allow form to submit normally
@@ -714,6 +746,65 @@ document.addEventListener('DOMContentLoaded', function() {
                 value = value.substring(0, 11);
             }
             e.target.value = value;
+        });
+    }
+    
+    // Auto-format mã đơn hàng
+    const orderCodeInput = document.getElementById('order_code');
+    if (orderCodeInput) {
+        orderCodeInput.addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase();
+            // Chỉ cho phép chữ cái và số
+            value = value.replace(/[^A-Z0-9]/g, '');
+            
+            // Nếu bắt đầu bằng DH, chỉ cho phép số sau đó
+            if (value.startsWith('DH')) {
+                const numbers = value.substring(2).replace(/\D/g, '');
+                if (numbers.length > 7) {
+                    value = 'DH' + numbers.substring(0, 7);
+                } else {
+                    value = 'DH' + numbers;
+                }
+            } else if (value.length > 0 && !value.startsWith('DH')) {
+                // Nếu không bắt đầu bằng DH, tự động thêm DH nếu bắt đầu bằng số
+                if (/^[0-9]/.test(value)) {
+                    const numbers = value.replace(/\D/g, '');
+                    if (numbers.length > 7) {
+                        value = 'DH' + numbers.substring(0, 7);
+                    } else {
+                        value = 'DH' + numbers;
+                    }
+                } else {
+                    // Nếu bắt đầu bằng chữ khác, chỉ giữ lại DH nếu có
+                    value = value.replace(/^[^D]*D?H?/i, 'DH');
+                    const numbers = value.substring(2).replace(/\D/g, '');
+                    if (numbers.length > 7) {
+                        value = 'DH' + numbers.substring(0, 7);
+                    } else {
+                        value = 'DH' + numbers;
+                    }
+                }
+            }
+            
+            e.target.value = value;
+        });
+        
+        // Validate khi blur
+        orderCodeInput.addEventListener('blur', function(e) {
+            const value = e.target.value.trim().toUpperCase();
+            const errorDiv = document.getElementById('order_code_error');
+            
+            if (value && !/^DH[0-9]{7}$/.test(value)) {
+                e.target.classList.add('is-invalid');
+                if (errorDiv) {
+                    errorDiv.textContent = 'Mã đơn hàng phải có định dạng DH + 7 chữ số (ví dụ: DH1234567)';
+                }
+            } else {
+                e.target.classList.remove('is-invalid');
+                if (errorDiv) {
+                    errorDiv.textContent = '';
+                }
+            }
         });
     }
     

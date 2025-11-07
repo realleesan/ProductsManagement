@@ -92,6 +92,28 @@ class OrderController {
         }
         
         try {
+            // Validate mã đơn hàng
+            $order_code = !empty($_POST['order_code']) ? strtoupper(trim(sanitizeInput($_POST['order_code']))) : '';
+            
+            if (empty($order_code)) {
+                throw new Exception("Mã đơn hàng không được để trống");
+            }
+            
+            // Validate format mã đơn hàng: DH + 7 chữ số
+            if (!preg_match('/^DH[0-9]{7}$/', $order_code)) {
+                throw new Exception("Mã đơn hàng phải có định dạng DH + 7 chữ số (ví dụ: DH1234567)");
+            }
+            
+            // Kiểm tra mã đơn hàng đã tồn tại chưa
+            $checkOrderCodeQuery = "SELECT order_id FROM orders WHERE order_code = :order_code LIMIT 1";
+            $checkOrderCodeStmt = $this->db->prepare($checkOrderCodeQuery);
+            $checkOrderCodeStmt->bindParam(':order_code', $order_code);
+            $checkOrderCodeStmt->execute();
+            
+            if ($checkOrderCodeStmt->rowCount() > 0) {
+                throw new Exception("Mã đơn hàng đã tồn tại. Vui lòng nhập mã khác");
+            }
+            
             // Validate và xử lý thông tin khách hàng
             $customer_fullname = sanitizeInput($_POST['customer_fullname']);
             $customer_phone = sanitizeInput($_POST['customer_phone']);
@@ -180,6 +202,7 @@ class OrderController {
             }
             
             // Lấy dữ liệu từ form
+            $this->order->order_code = $order_code;
             $this->order->customer_id = $customer_id;
             $this->order->shipping_address = sanitizeInput($_POST['shipping_address']);
             $this->order->shipping_note = isset($_POST['shipping_note']) ? sanitizeInput($_POST['shipping_note']) : '';
@@ -230,6 +253,8 @@ class OrderController {
             }
             
         } catch (Exception $e) {
+            error_log("Error creating order: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             setFlashMessage('error', 'Lỗi: ' . $e->getMessage());
             $_SESSION['form_data'] = $_POST;
             redirect('?controller=OrderController&action=create');
