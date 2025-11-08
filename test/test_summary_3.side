@@ -1,0 +1,1400 @@
+{
+  "id": "test-summary-order-create",
+  "version": "2.0",
+  "name": "Test Suite - Tạo Đơn Hàng (20 Test Cases)",
+  "url": "http://localhost/quanlysanpham",
+  "tests": [
+    {
+      "id": "tc01",
+      "name": "TC01 - Tạo đơn hàng hợp lệ với đầy đủ thông tin",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "click-order-code",
+          "command": "click",
+          "target": "id=order_code",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH1111111"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm Neutrogena"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "click-customer-fullname",
+          "command": "click",
+          "target": "id=customer_fullname",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "click-customer-phone",
+          "command": "click",
+          "target": "id=customer_phone",
+          "value": ""
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "click-shipping-address",
+          "command": "click",
+          "target": "id=shipping_address",
+          "value": ""
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC, Quận 1, TP.HCM"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc02",
+      "name": "TC02 - Tạo đơn hàng hợp lệ với số lượng tối thiểu",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH8888888"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Son môi MAC"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Son môi MAC Ruby Woo']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Trần Thị B"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0912345678"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "456 Đường XYZ, Quận 2, TP.HCM"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc03",
+      "name": "TC03 - Tạo đơn hàng hợp lệ với số lượng lớn",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH3333333"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Sữa tắm Dove"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Sữa tắm Dove Deep Moisture']",
+          "value": ""
+        },
+        {
+          "id": "click-cart-quantity-input",
+          "command": "click",
+          "target": "css=tr[data-product-id='5'] input.cart-quantity",
+          "value": ""
+        },
+        {
+          "id": "type-cart-quantity",
+          "command": "type",
+          "target": "css=tr[data-product-id='5'] input.cart-quantity",
+          "value": "50"
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Lê Văn C"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0923456789"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "789 Đường DEF, Quận 3, TP.HCM"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc04",
+      "name": "TC04 - Mã đơn hàng thiếu tiền tố DH",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "1111111"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc05",
+      "name": "TC05 - Mã đơn hàng có ít hơn 7 chữ số",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH123456"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc06",
+      "name": "TC06 - Mã đơn hàng có nhiều hơn 7 chữ số",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH12345678"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc07",
+      "name": "TC07 - Mã đơn hàng chứa ký tự không phải số",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH12345AB"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc08",
+      "name": "TC08 - Mã đơn hàng để trống",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": ""
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc09",
+      "name": "TC09 - Không chọn sản phẩm nào",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH4444444"
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc10",
+      "name": "TC10 - Chọn sản phẩm hết hàng (tồn kho = 0)",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH5555555"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Serum Vitamin C"
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc11",
+      "name": "TC11 - Số lượng mua vượt quá tồn kho",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH6666666"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Son môi MAC"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Son môi MAC Ruby Woo']",
+          "value": ""
+        },
+        {
+          "id": "click-cart-quantity-input-tc11",
+          "command": "click",
+          "target": "css=tr[data-product-id='2'] input.cart-quantity",
+          "value": ""
+        },
+        {
+          "id": "type-cart-quantity-tc11",
+          "command": "type",
+          "target": "css=tr[data-product-id='2'] input.cart-quantity",
+          "value": "31"
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc12",
+      "name": "TC12 - Họ tên khách hàng để trống",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH7777777"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": ""
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc13",
+      "name": "TC13 - Họ tên khách hàng chỉ có khoảng trắng",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH8888888"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "   "
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc14",
+      "name": "TC14 - Số điện thoại để trống",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH9999999"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": ""
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc15",
+      "name": "TC15 - Số điện thoại có ít hơn 10 chữ số",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH0000001"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "123456789"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc16",
+      "name": "TC16 - Số điện thoại có nhiều hơn 11 chữ số",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH0000002"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "012345678901"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc17",
+      "name": "TC17 - Số điện thoại chứa ký tự không phải số",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH0000003"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "09012345AB"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc18",
+      "name": "TC18 - Địa chỉ giao hàng để trống",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH0000004"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": ""
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc19",
+      "name": "TC19 - Địa chỉ giao hàng chỉ có khoảng trắng",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH0000005"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "   "
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "tc20",
+      "name": "TC20 - Số lượng mua = 0",
+      "commands": [
+        {
+          "id": "open-create-page",
+          "command": "open",
+          "target": "/quanlysanpham/?controller=OrderController&action=create",
+          "value": ""
+        },
+        {
+          "id": "set-window-size",
+          "command": "setWindowSize",
+          "target": "1486x816",
+          "value": ""
+        },
+        {
+          "id": "type-order-code",
+          "command": "type",
+          "target": "id=order_code",
+          "value": "DH0000006"
+        },
+        {
+          "id": "click-toggle-product-list",
+          "command": "click",
+          "target": "id=toggleProductList",
+          "value": ""
+        },
+        {
+          "id": "type-search-product",
+          "command": "type",
+          "target": "id=searchProduct",
+          "value": "Kem dưỡng ẩm"
+        },
+        {
+          "id": "click-add-to-cart",
+          "command": "click",
+          "target": "css=button.add-to-cart[data-product-name='Kem dưỡng ẩm Neutrogena Hydro Boost']",
+          "value": ""
+        },
+        {
+          "id": "click-cart-quantity-input-tc20",
+          "command": "click",
+          "target": "css=tr[data-product-id='1'] input.cart-quantity",
+          "value": ""
+        },
+        {
+          "id": "type-cart-quantity-tc20",
+          "command": "type",
+          "target": "css=tr[data-product-id='1'] input.cart-quantity",
+          "value": "0"
+        },
+        {
+          "id": "type-customer-fullname",
+          "command": "type",
+          "target": "id=customer_fullname",
+          "value": "Nguyễn Văn A"
+        },
+        {
+          "id": "type-customer-phone",
+          "command": "type",
+          "target": "id=customer_phone",
+          "value": "0901234567"
+        },
+        {
+          "id": "type-shipping-address",
+          "command": "type",
+          "target": "id=shipping_address",
+          "value": "123 Đường ABC"
+        },
+        {
+          "id": "click-submit",
+          "command": "click",
+          "target": "css=button[type='submit']",
+          "value": ""
+        }
+      ]
+    }
+  ],
+  "suites": [
+    {
+      "id": "suite-all-tests",
+      "name": "Tất cả Test Cases",
+      "persistSession": false,
+      "parallel": false,
+      "timeout": 300,
+      "tests": [
+        "tc01",
+        "tc02",
+        "tc03",
+        "tc04",
+        "tc05",
+        "tc06",
+        "tc07",
+        "tc08",
+        "tc09",
+        "tc10",
+        "tc11",
+        "tc12",
+        "tc13",
+        "tc14",
+        "tc15",
+        "tc16",
+        "tc17",
+        "tc18",
+        "tc19",
+        "tc20"
+      ]
+    }
+  ],
+  "urls": [
+    "http://localhost/quanlysanpham"
+  ],
+  "plugins": []
+}
+

@@ -217,29 +217,6 @@ class ProductController {
                 // If no main image is set and no new one was uploaded, keep the old one
                 $this->product->main_image = $old_main_image;
             }
-
-            // Check if we have at least one image (main or gallery)
-            $hasMainImage = !empty($this->product->main_image);
-            $hasGalleryImages = !empty($this->product->gallery_images) && 
-                              (count($this->product->gallery_images) > count($deleted_gallery_ids));
-            
-            if (!$hasMainImage && !$hasGalleryImages) {
-                setFlashMessage('error', 'Sản phẩm phải có ít nhất một ảnh (ảnh chính hoặc ảnh phụ)');
-                redirect('?controller=ProductController&action=edit&id=' . $id);
-                return;
-            }
-            
-            // If main image is removed but there are gallery images, use the first gallery image as main
-            if (!$hasMainImage && $hasGalleryImages) {
-                foreach ($this->product->gallery_images as $gallery_image) {
-                    if (!in_array((int)$gallery_image['image_id'], $deleted_gallery_ids, true)) {
-                        $this->product->main_image = $gallery_image['image_path'];
-                        // Remove this image from gallery since it's now the main image
-                        $deleted_gallery_ids[] = (int)$gallery_image['image_id'];
-                        break;
-                    }
-                }
-            }
             
             // Update the product
             if ($this->product->update()) {

@@ -26,10 +26,12 @@ unset($_SESSION['form_data']);
                            id="product_code" 
                            name="product_code" 
                            class="form-control" 
-                           placeholder="VD: SP001"
+                           pattern="^SP[0-9]{7}$"
+                           maxlength="9"
+                           placeholder="VD: SP1234567"
                            value="<?php echo isset($form_data['product_code']) ? htmlspecialchars($form_data['product_code']) : ''; ?>"
                            required>
-                    <small class="form-text">Định dạng: SPXX...X (chỉ chữ in hoa và số)</small>
+                    <small class="form-text">Định dạng: SP + 7 chữ số (ví dụ: SP1234567)</small>
                 </div>
                 
                 <div class="form-group">
@@ -115,7 +117,7 @@ unset($_SESSION['form_data']);
                            class="form-control"
                            value="<?php echo isset($form_data['expiry_date']) ? $form_data['expiry_date'] : ''; ?>"
                            required>
-                    <small class="form-text">Phải sau ngày sản xuất ít nhất 30 ngày</small>
+                    <small class="form-text">Phải sau ngày sản xuất ít nhất 90 ngày</small>
                 </div>
             </div>
             

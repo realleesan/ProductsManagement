@@ -24,14 +24,16 @@ require_once __DIR__ . '/../layouts/header.php';
                            id="product_code" 
                            name="product_code" 
                            class="form-control" 
+                           pattern="^SP[0-9]{7}$"
+                           maxlength="9"
                            value="<?php echo htmlspecialchars($product->product_code); ?>"
                            required>
-                    <small class="form-text">Định dạng: SPXX...X (chỉ chữ in hoa và số)</small>
+                    <small class="form-text">Định dạng: SP + 7 chữ số (ví dụ: SP1234567)</small>
                 </div>
                 
                 <div class="form-group">
-                    <label for="category_id">Danh mục <span class="required">*</span></label>
-                    <select id="category_id" name="category_id" class="form-control" required>
+                    <label for="category_id">Danh mục</label>
+                    <select id="category_id" name="category_id" class="form-control">
                         <option value="">-- Chọn danh mục --</option>
                         <?php foreach ($categories as $cat): ?>
                         <option value="<?php echo $cat['category_id']; ?>"
@@ -108,7 +110,7 @@ require_once __DIR__ . '/../layouts/header.php';
                            class="form-control"
                            value="<?php echo $product->expiry_date; ?>"
                            required>
-                    <small class="form-text">Phải sau ngày sản xuất ít nhất 30 ngày</small>
+                    <small class="form-text">Phải sau ngày sản xuất ít nhất 90 ngày</small>
                 </div>
             </div>
             
@@ -123,7 +125,7 @@ require_once __DIR__ . '/../layouts/header.php';
             </div>
             
             <div class="form-group">
-                <label>Ảnh chính <span class="required">*</span></label>
+                <label>Ảnh chính</label>
                 <small class="form-text">Chấp nhận: JPG, JPEG, PNG. Tối đa 5MB. Để trống nếu giữ nguyên ảnh hiện tại.</small>
                 <div class="main-image-upload">
                     <label for="main_image" class="image-upload-label">
@@ -444,24 +446,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Handle form submission to prevent empty form submission
+    // Handle form submission
     const form = document.querySelector('.product-form');
     if (form) {
         form.addEventListener('submit', function(e) {
-            // Check if we have at least one image (main or gallery)
-            const hasMainImage = document.querySelector('#main_image').files.length > 0 || 
-                               (document.querySelector('input[name="keep_main_image"]') && 
-                                !document.querySelector('input[name="remove_main_image"]'));
-                               
-            const hasGalleryImages = document.querySelectorAll('.gallery-image-item').length > 0 ||
-                                   document.querySelectorAll('#gallery-preview .gallery-preview-item').length > 0;
-            
-            if (!hasMainImage && !hasGalleryImages) {
-                e.preventDefault();
-                alert('Vui lòng tải lên ít nhất một ảnh (ảnh chính hoặc ảnh phụ)');
-                return false;
-            }
-            
+            // Form validation is handled by validateProductForm() function
             return true;
         });
     }

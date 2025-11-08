@@ -210,8 +210,8 @@ class Product {
         // Validate mã sản phẩm
         if (empty($this->product_code)) {
             $errors[] = "Mã sản phẩm không được để trống";
-        } elseif (!preg_match('/^SP[A-Z0-9]+$/', $this->product_code)) {
-            $errors[] = "Mã sản phẩm phải có định dạng SPXX...X (chỉ chữ in hoa và số)";
+        } elseif (!preg_match('/^SP[0-9]{7}$/', $this->product_code)) {
+            $errors[] = "Mã sản phẩm phải có định dạng SP + 7 chữ số (ví dụ: SP1234567)";
         }
         
         // Validate tên sản phẩm
@@ -249,8 +249,8 @@ class Product {
             $exp = strtotime($this->expiry_date);
             $diff_days = ($exp - $mfg) / (60 * 60 * 24);
             
-            if ($diff_days < 30) {
-                $errors[] = "Hạn sử dụng phải sau ngày sản xuất ít nhất 30 ngày";
+            if ($diff_days < 90) {
+                $errors[] = "Hạn sử dụng phải sau ngày sản xuất ít nhất 90 ngày";
             }
         }
         

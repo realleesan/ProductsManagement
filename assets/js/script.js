@@ -47,18 +47,65 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Validate mã sản phẩm khi nhập
+    // Auto-format mã sản phẩm khi nhập
     const productCodeInput = document.getElementById('product_code');
     if (productCodeInput) {
-        productCodeInput.addEventListener('input', function() {
-            this.value = this.value.toUpperCase();
+        productCodeInput.addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase();
+            // Chỉ cho phép chữ cái và số
+            value = value.replace(/[^A-Z0-9]/g, '');
+            
+            // Nếu bắt đầu bằng SP, chỉ cho phép số sau đó
+            if (value.startsWith('SP')) {
+                const numbers = value.substring(2).replace(/\D/g, '');
+                if (numbers.length > 7) {
+                    value = 'SP' + numbers.substring(0, 7);
+                } else {
+                    value = 'SP' + numbers;
+                }
+            } else if (value.length > 0 && !value.startsWith('SP')) {
+                // Nếu không bắt đầu bằng SP, tự động thêm SP nếu bắt đầu bằng số
+                if (/^[0-9]/.test(value)) {
+                    const numbers = value.replace(/\D/g, '');
+                    if (numbers.length > 7) {
+                        value = 'SP' + numbers.substring(0, 7);
+                    } else {
+                        value = 'SP' + numbers;
+                    }
+                } else {
+                    // Nếu bắt đầu bằng chữ khác, chỉ giữ lại SP nếu có
+                    value = value.replace(/^[^S]*S?P?/i, 'SP');
+                    const numbers = value.substring(2).replace(/\D/g, '');
+                    if (numbers.length > 7) {
+                        value = 'SP' + numbers.substring(0, 7);
+                    } else {
+                        value = 'SP' + numbers;
+                    }
+                }
+            }
+            
+            e.target.value = value;
             
             // Validate format
-            const pattern = /^SP[A-Z0-9]*$/;
-            if (this.value && !pattern.test(this.value)) {
-                this.setCustomValidity('Mã sản phẩm phải có định dạng SPXX...X (chỉ chữ in hoa và số)');
+            const pattern = /^SP[0-9]{7}$/;
+            if (value && !pattern.test(value)) {
+                this.setCustomValidity('Mã sản phẩm phải có định dạng SP + 7 chữ số (ví dụ: SP1234567)');
             } else {
                 this.setCustomValidity('');
+            }
+        });
+        
+        // Validate khi blur
+        productCodeInput.addEventListener('blur', function(e) {
+            const value = e.target.value.trim().toUpperCase();
+            const pattern = /^SP[0-9]{7}$/;
+            
+            if (value && !pattern.test(value)) {
+                this.setCustomValidity('Mã sản phẩm phải có định dạng SP + 7 chữ số (ví dụ: SP1234567)');
+                this.classList.add('is-invalid');
+            } else {
+                this.setCustomValidity('');
+                this.classList.remove('is-invalid');
             }
         });
     }
@@ -74,8 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const expDate = new Date(expDateInput.value);
                 const diffDays = (expDate - mfgDate) / (1000 * 60 * 60 * 24);
                 
-                if (diffDays < 30) {
-                    expDateInput.setCustomValidity('Hạn sử dụng phải sau ngày sản xuất ít nhất 30 ngày');
+                if (diffDays < 90) {
+                    expDateInput.setCustomValidity('Hạn sử dụng phải sau ngày sản xuất ít nhất 90 ngày');
                     return false;
                 } else {
                     expDateInput.setCustomValidity('');
@@ -244,9 +291,9 @@ function validateProductForm(form) {
     // Validate mã sản phẩm
     const productCode = form.querySelector('#product_code');
     if (productCode) {
-        const pattern = /^SP[A-Z0-9]+$/;
+        const pattern = /^SP[0-9]{7}$/;
         if (!pattern.test(productCode.value)) {
-            errors.push('Mã sản phẩm phải có định dạng SPXX...X');
+            errors.push('Mã sản phẩm phải có định dạng SP + 7 chữ số (ví dụ: SP1234567)');
             isValid = false;
         }
     }
@@ -289,8 +336,8 @@ function validateProductForm(form) {
         const exp = new Date(expDate.value);
         const diffDays = (exp - mfg) / (1000 * 60 * 60 * 24);
         
-        if (diffDays < 30) {
-            errors.push('Hạn sử dụng phải sau ngày sản xuất ít nhất 30 ngày');
+        if (diffDays < 90) {
+            errors.push('Hạn sử dụng phải sau ngày sản xuất ít nhất 90 ngày');
             isValid = false;
         }
     }

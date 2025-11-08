@@ -266,8 +266,7 @@ require_once __DIR__ . '/../layouts/header.php';
                                 <div class="mb-3">
                                     <label for="payment_method" class="form-label">Phương thức thanh toán <span class="text-danger">*</span></label>
                                     <select class="form-select" id="payment_method" name="payment_method" required>
-                                        <option value="">-- Chọn phương thức thanh toán --</option>
-                                        <option value="COD">COD (Thanh toán khi nhận hàng)</option>
+                                        <option value="COD" selected>COD (Thanh toán khi nhận hàng)</option>
                                         <option value="Bank Transfer">Chuyển khoản</option>
                                         <option value="E-Wallet">Ví điện tử</option>
                                     </select>

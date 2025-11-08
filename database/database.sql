@@ -30,14 +30,14 @@ CREATE TABLE categories (
 
 CREATE TABLE products (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã sản phẩm duy nhất, định dạng SPXX...X',
+    product_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã sản phẩm duy nhất, định dạng SP + 7 chữ số (ví dụ: SP1234567)',
     product_name VARCHAR(150) NOT NULL COMMENT 'Tên sản phẩm, 5-150 ký tự',
     description VARCHAR(500) COMMENT 'Mô tả sản phẩm, tối đa 500 ký tự',
     price DECIMAL(12,2) NOT NULL COMMENT 'Giá bán, từ 1.000 đến 1.000.000.000 VNĐ',
     stock_quantity INT NOT NULL DEFAULT 0 COMMENT 'Số lượng tồn kho, >= 0',
     category_id INT NOT NULL COMMENT 'Danh mục sản phẩm',
     manufacture_date DATE NOT NULL COMMENT 'Ngày sản xuất',
-    expiry_date DATE NOT NULL COMMENT 'Hạn sử dụng, phải sau ngày sản xuất >= 30 ngày',
+    expiry_date DATE NOT NULL COMMENT 'Hạn sử dụng, phải sau ngày sản xuất >= 90 ngày',
     status ENUM('Active', 'Disabled', 'Out of stock', 'Expired') DEFAULT 'Active' COMMENT 'Trạng thái sản phẩm',
     main_image VARCHAR(255) COMMENT 'Ảnh chính của sản phẩm',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -49,11 +49,11 @@ CREATE TABLE products (
     FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     
     -- Ràng buộc theo tài liệu
-    CONSTRAINT chk_product_code_format CHECK (product_code REGEXP '^SP[A-Z0-9]+$'),
+    CONSTRAINT chk_product_code_format CHECK (product_code REGEXP '^SP[0-9]{7}$'),
     CONSTRAINT chk_product_name_length CHECK (CHAR_LENGTH(product_name) BETWEEN 5 AND 150),
     CONSTRAINT chk_price_range CHECK (price >= 1000 AND price <= 1000000000),
     CONSTRAINT chk_stock_quantity CHECK (stock_quantity >= 0),
-    CONSTRAINT chk_expiry_after_manufacture CHECK (DATEDIFF(expiry_date, manufacture_date) >= 30),
+    CONSTRAINT chk_expiry_after_manufacture CHECK (DATEDIFF(expiry_date, manufacture_date) >= 90),
     CONSTRAINT chk_description_length CHECK (description IS NULL OR CHAR_LENGTH(description) <= 500)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -167,16 +167,16 @@ INSERT INTO categories (category_code, category_name, description, status) VALUE
 
 -- Thêm sản phẩm mẫu
 INSERT INTO products (product_code, product_name, description, price, stock_quantity, category_id, manufacture_date, expiry_date, status, main_image, created_by) VALUES
-('SP001', 'Kem dưỡng ẩm Neutrogena Hydro Boost', 'Kem dưỡng ẩm chuyên sâu với công nghệ Hydro Boost, giúp da mềm mại và căng mọng', 350000, 50, 1, '2024-01-15', '2026-01-15', 'Active', 'sample_neutrogena_main.jpg', 'admin'),
-('SP002', 'Son môi MAC Ruby Woo', 'Son môi lì màu đỏ ruby kinh điển, lâu trôi và bền màu', 650000, 30, 2, '2024-02-01', '2026-02-01', 'Active', 'sample_mac_main.jpg', 'admin'),
-('SP003', 'Dầu gội Tresemme Keratin Smooth', 'Dầu gội phục hồi tóc hư tổn với keratin, giúp tóc mượt mà và bóng khỏe', 180000, 100, 3, '2024-03-10', '2026-03-10', 'Active', 'sample_tresemme_main.jpg', 'admin'),
-('SP004', 'Nước hoa Chanel No.5 EDP 100ml', 'Nước hoa nữ huyền thoại với hương thơm quyến rũ và sang trọng', 3500000, 15, 4, '2024-01-20', '2027-01-20', 'Active', 'sample_chanel_main.jpg', 'admin'),
-('SP005', 'Sữa tắm Dove Deep Moisture', 'Sữa tắm dưỡng ẩm sâu với 1/4 kem dưỡng ẩm, cho làn da mềm mại', 120000, 200, 5, '2024-04-01', '2026-04-01', 'Active', 'sample_dove_main.jpg', 'admin'),
-('SP006', 'Serum Vitamin C The Ordinary', 'Serum vitamin C 23% giúp làm sáng da và mờ thâm nám', 280000, 0, 1, '2024-02-15', '2025-08-15', 'Expired', 'sample_ordinary_main.jpg', 'admin'),
-('SP007', 'Phấn phủ Innisfree No Sebum Mineral', 'Phấn phủ kiềm dầu hiệu quả, giữ lớp makeup lâu trôi', 195000, 80, 2, '2024-03-20', '2026-03-20', 'Active', 'sample_innisfree_main.jpg', 'admin'),
-('SP008', 'Mặt nạ ngủ Laneige Water Sleeping Mask', 'Mặt nạ ngủ cấp ẩm chuyên sâu, giúp da tươi sáng vào buổi sáng', 520000, 45, 1, '2024-01-10', '2026-01-10', 'Active', 'sample_laneige_main.jpg', 'admin'),
-('SP009', 'Kem chống nắng La Roche-Posay SPF50+', 'Kem chống nắng phổ rộng, phù hợp cho da nhạy cảm', 420000, 60, 1, '2023-12-01', '2025-06-01', 'Active', 'sample_laroche_main.jpg', 'admin'),
-('SP010', 'Xịt khoáng Avene Thermal Spring Water', 'Xịt khoáng làm dịu và cân bằng da, phù hợp mọi loại da', 250000, 120, 1, '2024-02-20', '2027-02-20', 'Active', 'sample_avene_main.jpg', 'admin');
+('SP0000001', 'Kem dưỡng ẩm Neutrogena Hydro Boost', 'Kem dưỡng ẩm chuyên sâu với công nghệ Hydro Boost, giúp da mềm mại và căng mọng', 350000, 50, 1, '2024-01-15', '2026-01-15', 'Active', 'sample_neutrogena_main.jpg', 'admin'),
+('SP0000002', 'Son môi MAC Ruby Woo', 'Son môi lì màu đỏ ruby kinh điển, lâu trôi và bền màu', 650000, 30, 2, '2024-02-01', '2026-02-01', 'Active', 'sample_mac_main.jpg', 'admin'),
+('SP0000003', 'Dầu gội Tresemme Keratin Smooth', 'Dầu gội phục hồi tóc hư tổn với keratin, giúp tóc mượt mà và bóng khỏe', 180000, 100, 3, '2024-03-10', '2026-03-10', 'Active', 'sample_tresemme_main.jpg', 'admin'),
+('SP0000004', 'Nước hoa Chanel No.5 EDP 100ml', 'Nước hoa nữ huyền thoại với hương thơm quyến rũ và sang trọng', 3500000, 15, 4, '2024-01-20', '2027-01-20', 'Active', 'sample_chanel_main.jpg', 'admin'),
+('SP0000005', 'Sữa tắm Dove Deep Moisture', 'Sữa tắm dưỡng ẩm sâu với 1/4 kem dưỡng ẩm, cho làn da mềm mại', 120000, 200, 5, '2024-04-01', '2026-04-01', 'Active', 'sample_dove_main.jpg', 'admin'),
+('SP0000006', 'Serum Vitamin C The Ordinary', 'Serum vitamin C 23% giúp làm sáng da và mờ thâm nám', 280000, 0, 1, '2024-02-15', '2025-08-15', 'Expired', 'sample_ordinary_main.jpg', 'admin'),
+('SP0000007', 'Phấn phủ Innisfree No Sebum Mineral', 'Phấn phủ kiềm dầu hiệu quả, giữ lớp makeup lâu trôi', 195000, 80, 2, '2024-03-20', '2026-03-20', 'Active', 'sample_innisfree_main.jpg', 'admin'),
+('SP0000008', 'Mặt nạ ngủ Laneige Water Sleeping Mask', 'Mặt nạ ngủ cấp ẩm chuyên sâu, giúp da tươi sáng vào buổi sáng', 520000, 45, 1, '2024-01-10', '2026-01-10', 'Active', 'sample_laneige_main.jpg', 'admin'),
+('SP0000009', 'Kem chống nắng La Roche-Posay SPF50+', 'Kem chống nắng phổ rộng, phù hợp cho da nhạy cảm', 420000, 60, 1, '2023-12-01', '2025-06-01', 'Active', 'sample_laroche_main.jpg', 'admin'),
+('SP0000010', 'Xịt khoáng Avene Thermal Spring Water', 'Xịt khoáng làm dịu và cân bằng da, phù hợp mọi loại da', 250000, 120, 1, '2024-02-20', '2027-02-20', 'Active', 'sample_avene_main.jpg', 'admin');
 
 INSERT INTO product_images (product_id, image_path, sort_order) VALUES
 (1, 'sample_neutrogena_1.jpg', 1),
