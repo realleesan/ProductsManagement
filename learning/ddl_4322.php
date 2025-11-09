@@ -3,9 +3,9 @@
  * Kiểm thử hộp trắng - Dòng dữ liệu
  * 4.3.2.2. Chức năng quản lý kho (Tạo phiếu nhập kho)
  * 
- * Input từ bảng giá trị:
- * - Mã phiếu nhập (string) - tự động tạo
- * - Tên sản phẩm (string) - được lấy từ product_id
+ * Input từ bảng giá trị (chỉ các biến cần kiểm thử đời sống):
+ * - Mã phiếu nhập (string)
+ * - Sản phẩm (product_id)
  * - Số lượng nhập [1, maxint]
  * - Ngày nhập (date)
  * - Đơn giá [1.000, 1.000.000.000]
@@ -35,7 +35,9 @@ function importWarehouse() {
     }
     
     try {
-        // Bước 1: Nhận dữ liệu từ POST (chỉ các input trong bảng giá trị)
+        // Bước 1: Nhận dữ liệu từ POST
+        // Các biến chính cần kiểm thử đời sống:
+        $import_code = strtoupper(sanitizeInput($_POST['import_code']));
         $product_id = (int)$_POST['product_id'];
         $quantity = (int)$_POST['quantity'];
         $unit_price = isset($_POST['unit_price']) ? (float)$_POST['unit_price'] : 0;
@@ -72,7 +74,6 @@ function importWarehouse() {
         
         // Bước 3: Tính toán giá trị phụ (không có trong bảng giá trị nhưng cần thiết)
         $total_amount = $quantity * $unit_price;
-        $import_code = 'PN' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
         
         // Bước 4: Bắt đầu transaction
         $db->beginTransaction();

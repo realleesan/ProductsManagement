@@ -726,10 +726,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
-        if (!confirm('Bạn có chắc chắn muốn lưu phiếu nhập kho này?')) {
-            e.preventDefault();
-            return false;
-        }
         return true;
     });
 });

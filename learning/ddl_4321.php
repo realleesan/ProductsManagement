@@ -3,15 +3,13 @@
  * Kiểm thử hộp trắng - Dòng dữ liệu
  * 4.3.2.1. Chức năng quản lý sản phẩm (Thêm mới sản phẩm)
  * 
- * Input từ bảng giá trị:
+ * Input từ bảng giá trị (chỉ các biến cần kiểm thử đời sống):
  * - Mã sản phẩm (string)
  * - Tên sản phẩm (string)
- * - Mô tả (string)
  * - Giá bán [1.000, 1.000.000.000]
  * - Số lượng tồn kho [0, maxint]
  * - Ngày sản xuất (date)
  * - Hạn sử dụng (date)
- * - Trạng thái {Active, Disabled, Out of stock, Expired}
  */
 
 require_once __DIR__ . '/../config/database.php';
@@ -35,14 +33,17 @@ function storeProduct() {
     }
     
     try {
-        // Bước 1: Nhận dữ liệu từ POST (chỉ các input trong bảng giá trị)
+        // Bước 1: Nhận dữ liệu từ POST
+        // Các biến chính cần kiểm thử đời sống:
         $product->product_code = strtoupper(sanitizeInput($_POST['product_code']));
         $product->product_name = sanitizeInput($_POST['product_name']);
-        $product->description = sanitizeInput($_POST['description']);
         $product->price = (float)$_POST['price'];
         $product->stock_quantity = (int)$_POST['stock_quantity'];
         $product->manufacture_date = $_POST['manufacture_date'];
         $product->expiry_date = $_POST['expiry_date'];
+        
+        // Các biến không kiểm thử đời sống (chỉ để code chạy được):
+        $product->description = sanitizeInput($_POST['description']);
         $product->status = sanitizeInput($_POST['status']);
         
         // Bước 2: Kiểm tra mã sản phẩm đã tồn tại
