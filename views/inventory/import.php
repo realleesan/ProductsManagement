@@ -24,14 +24,18 @@ require_once __DIR__ . '/../layouts/header.php';
                     <div class="form-group">
                         <label for="import_code" class="form-label fw-medium">Mã phiếu nhập <span class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg" id="import_code" name="import_code" 
-                               value="<?php echo $import_code; ?>" readonly>
+                               value="<?php echo isset($_SESSION['form_data']['import_code']) ? htmlspecialchars($_SESSION['form_data']['import_code']) : ''; ?>" 
+                               placeholder="PN1234567" maxlength="9" pattern="^PN[0-9]{7}$" required>
+                        <div class="form-text">Định dạng: PN + 7 số (ví dụ: PN1234567)</div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="import_date" class="form-label fw-medium">Ngày nhập <span class="text-danger">*</span></label>
-                        <input type="datetime-local" class="form-control form-control-lg" id="import_date" name="import_date" 
-                               value="<?php echo date('Y-m-d\TH:i'); ?>" required>
+                        <input type="text" class="form-control form-control-lg" id="import_date" name="import_date" 
+                               value="<?php echo isset($_SESSION['form_data']['import_date']) ? htmlspecialchars($_SESSION['form_data']['import_date']) : date('Y/m/d'); ?>" 
+                               placeholder="YYYY/MM/DD (ví dụ: 2024/01/15)" required>
+                        <div class="form-text">Định dạng: YYYY/MM/DD (ví dụ: 2024/01/15). Giờ không bắt buộc</div>
                     </div>
                 </div>
             </div>
@@ -214,8 +218,12 @@ require_once __DIR__ . '/../layouts/header.php';
             </div>
 
             <div class="form-group mb-4">
-                <label for="note" class="form-label fw-medium">Ghi chú</label>
-                <textarea class="form-control form-control-lg" id="note" name="note" rows="3" placeholder="Nhập ghi chú (nếu có)"><?php echo isset($_SESSION['form_data']['note']) ? htmlspecialchars($_SESSION['form_data']['note']) : ''; ?></textarea>
+                <label for="note" class="form-label fw-medium">Ghi chú <span class="text-danger">*</span></label>
+                <textarea class="form-control form-control-lg" id="note" name="note" rows="3" 
+                          placeholder="Nhập ghi chú" maxlength="500" required><?php echo isset($_SESSION['form_data']['note']) ? htmlspecialchars($_SESSION['form_data']['note']) : ''; ?></textarea>
+                <div class="form-text">
+                    <span id="note_char_count">0</span>/500 ký tự
+                </div>
             </div>
 
             <div class="d-flex justify-content-end gap-2 pt-3 border-top">
@@ -538,8 +546,163 @@ document.addEventListener('DOMContentLoaded', function() {
     
     updateStockAfter();
     
+    // Đếm ký tự cho trường ghi chú
+    const noteInput = document.getElementById('note');
+    const noteCharCount = document.getElementById('note_char_count');
+    
+    function updateNoteCharCount() {
+        const length = noteInput.value.length;
+        noteCharCount.textContent = length;
+        if (length > 500) {
+            noteCharCount.classList.add('text-danger');
+        } else {
+            noteCharCount.classList.remove('text-danger');
+        }
+    }
+    
+    noteInput.addEventListener('input', updateNoteCharCount);
+    updateNoteCharCount(); // Khởi tạo lần đầu
+    
+    // Validate ngày nhập
+    const importDateInput = document.getElementById('import_date');
+    importDateInput.addEventListener('blur', function() {
+        const dateValue = this.value.trim();
+        // Định dạng: YYYY/MM/DD hoặc YYYY/MM/DD HH:MM
+        const datePattern = /^(\d{4})\/(\d{2})\/(\d{2})(\s+(\d{2}):(\d{2}))?$/;
+        
+        if (dateValue && !datePattern.test(dateValue)) {
+            this.setCustomValidity('Định dạng ngày không hợp lệ. Vui lòng nhập theo định dạng YYYY/MM/DD (ví dụ: 2024/01/15)');
+        } else {
+            // Kiểm tra ngày hợp lệ
+            if (dateValue) {
+                const matches = dateValue.match(/^(\d{4})\/(\d{2})\/(\d{2})(\s+(\d{2}):(\d{2}))?$/);
+                if (matches) {
+                    const year = parseInt(matches[1]);
+                    const month = parseInt(matches[2]);
+                    const day = parseInt(matches[3]);
+                    const hour = matches[5] ? parseInt(matches[5]) : 0;
+                    const minute = matches[6] ? parseInt(matches[6]) : 0;
+                    
+                    const inputDate = new Date(year, month - 1, day, hour, minute);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0); // Reset giờ để chỉ so sánh ngày
+                    const inputDateOnly = new Date(year, month - 1, day); // Chỉ lấy ngày, không có giờ
+                    inputDateOnly.setHours(0, 0, 0, 0);
+                    
+                    if (isNaN(inputDate.getTime()) || inputDate.getFullYear() != year || 
+                        inputDate.getMonth() != month - 1 || inputDate.getDate() != day) {
+                        this.setCustomValidity('Ngày không hợp lệ');
+                    } else if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+                        this.setCustomValidity('Giờ không hợp lệ (phải từ 00:00 đến 23:59)');
+                    } else if (inputDateOnly > today) {
+                        this.setCustomValidity('Ngày nhập không được vượt quá ngày hiện tại');
+                    } else if (inputDateOnly < today) {
+                        // Ngày quá khứ - cảnh báo để người dùng sửa
+                        const daysDiff = Math.floor((today - inputDateOnly) / (1000 * 60 * 60 * 24));
+                        this.setCustomValidity('Ngày nhập không được là ngày quá khứ (' + daysDiff + ' ngày trước). Vui lòng nhập lại.');
+                    } else {
+                        this.setCustomValidity('');
+                    }
+                }
+            } else {
+                this.setCustomValidity('');
+            }
+        }
+    });
+    
+    // Validate mã phiếu nhập
+    const importCodeInput = document.getElementById('import_code');
+    importCodeInput.addEventListener('input', function() {
+        const code = this.value.trim().toUpperCase();
+        this.value = code;
+        const pattern = /^PN[0-9]{7}$/;
+        if (code && !pattern.test(code)) {
+            this.setCustomValidity('Mã phiếu nhập phải có định dạng PN + 7 số (ví dụ: PN1234567)');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+    
     // Xác nhận trước khi gửi form
     document.getElementById('importForm').addEventListener('submit', function(e) {
+        // Validate ngày nhập
+        const importDate = importDateInput.value.trim();
+        const datePattern = /^(\d{4})\/(\d{2})\/(\d{2})(\s+(\d{2}):(\d{2}))?$/;
+        if (!datePattern.test(importDate)) {
+            alert('Định dạng ngày không hợp lệ! Vui lòng nhập theo định dạng YYYY/MM/DD (ví dụ: 2024/01/15)');
+            importDateInput.focus();
+            e.preventDefault();
+            return false;
+        }
+        
+        // Kiểm tra ngày hợp lệ và không vượt quá ngày hiện tại
+        const matches = importDate.match(/^(\d{4})\/(\d{2})\/(\d{2})(\s+(\d{2}):(\d{2}))?$/);
+        const year = parseInt(matches[1]);
+        const month = parseInt(matches[2]);
+        const day = parseInt(matches[3]);
+        const hour = matches[5] ? parseInt(matches[5]) : 0;
+        const minute = matches[6] ? parseInt(matches[6]) : 0;
+        const inputDate = new Date(year, month - 1, day, hour, minute);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset giờ về 0 để chỉ so sánh ngày
+        const inputDateOnly = new Date(year, month - 1, day); // Chỉ lấy ngày, không có giờ
+        inputDateOnly.setHours(0, 0, 0, 0);
+        
+        if (isNaN(inputDate.getTime()) || inputDate.getFullYear() != year || 
+            inputDate.getMonth() != month - 1 || inputDate.getDate() != day) {
+            alert('Ngày không hợp lệ!');
+            importDateInput.focus();
+            e.preventDefault();
+            return false;
+        }
+        
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+            alert('Giờ không hợp lệ! Phải từ 00:00 đến 23:59');
+            importDateInput.focus();
+            e.preventDefault();
+            return false;
+        }
+        
+        if (inputDateOnly > today) {
+            alert('Ngày nhập không được vượt quá ngày hiện tại!');
+            importDateInput.focus();
+            e.preventDefault();
+            return false;
+        }
+        
+        // Chặn submit nếu ngày quá khứ (chỉ so sánh ngày, không so sánh giờ)
+        if (inputDateOnly < today) {
+            alert('Ngày nhập không được là ngày quá khứ! Vui lòng nhập lại.');
+            importDateInput.focus();
+            e.preventDefault();
+            return false;
+        }
+        
+        // Validate ghi chú
+        const note = noteInput.value.trim();
+        if (!note) {
+            alert('Vui lòng nhập ghi chú!');
+            noteInput.focus();
+            e.preventDefault();
+            return false;
+        }
+        if (note.length > 500) {
+            alert('Ghi chú không được vượt quá 500 ký tự!');
+            noteInput.focus();
+            e.preventDefault();
+            return false;
+        }
+        
+        // Validate mã phiếu nhập
+        const importCode = importCodeInput.value.trim();
+        const codePattern = /^PN[0-9]{7}$/;
+        if (!codePattern.test(importCode)) {
+            alert('Mã phiếu nhập không hợp lệ! Định dạng phải là PN + 7 số (ví dụ: PN1234567)');
+            importCodeInput.focus();
+            e.preventDefault();
+            return false;
+        }
+        
         // Validate đơn giá
         const unitPrice = parseFloat(unitPriceInput.value) || 0;
         if (unitPrice < 1000 || unitPrice > 1000000000) {

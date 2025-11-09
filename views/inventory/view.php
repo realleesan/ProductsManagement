@@ -66,6 +66,22 @@
                                     </td>
                                 </tr>
                                 <tr>
+                                    <th>Ngày nhập/xuất:</th>
+                                    <td>
+                                        <span class="text-dark">
+                                            <i class="fas fa-calendar me-1 text-muted"></i>
+                                            <?php 
+                                            // Hiển thị ngày nhập/xuất thực tế nếu có
+                                            if (isset($transaction['transaction_date']) && $transaction['transaction_date']) {
+                                                echo date('d/m/Y', strtotime($transaction['transaction_date']));
+                                            } else {
+                                                echo date('d/m/Y', strtotime($transaction['action_at']));
+                                            }
+                                            ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <th>Thời gian:</th>
                                     <td>
                                         <span class="text-dark">

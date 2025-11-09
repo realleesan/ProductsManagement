@@ -298,12 +298,12 @@ USE quanlysanpham;
 -- =====================================================
 CREATE TABLE warehouse_import (
     import_id INT AUTO_INCREMENT PRIMARY KEY,
-    import_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã phiếu nhập, định dạng PNYYYYMMDDXXX',
+    import_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã phiếu nhập, định dạng PN + 7 số (ví dụ: PN1234567)',
     product_id INT NOT NULL COMMENT 'Sản phẩm nhập',
     quantity INT NOT NULL COMMENT 'Số lượng nhập >= 1',
     import_date DATE NOT NULL COMMENT 'Ngày nhập hàng',
     import_by VARCHAR(50) NOT NULL COMMENT 'Người nhập hàng',
-    note TEXT COMMENT 'Ghi chú phiếu nhập',
+    note VARCHAR(500) NOT NULL COMMENT 'Ghi chú phiếu nhập (bắt buộc, tối đa 500 ký tự)',
     status ENUM('Pending', 'Completed', 'Cancelled') DEFAULT 'Pending' COMMENT 'Trạng thái phiếu nhập',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -317,13 +317,13 @@ CREATE TABLE warehouse_import (
 -- =====================================================
 CREATE TABLE warehouse_export (
     export_id INT AUTO_INCREMENT PRIMARY KEY,
-    export_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã phiếu xuất, định dạng PXYYYYMMDDXXX',
+    export_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã phiếu xuất, định dạng PX + 7 số (ví dụ: PX1234567)',
     product_id INT NOT NULL COMMENT 'Sản phẩm xuất',
     quantity INT NOT NULL COMMENT 'Số lượng xuất >= 1',
     export_date DATE NOT NULL COMMENT 'Ngày xuất hàng',
     export_by VARCHAR(50) NOT NULL COMMENT 'Người xuất hàng',
-    reason ENUM('Sale', 'Return', 'Damaged', 'Expired', 'Other') NOT NULL COMMENT 'Lý do xuất kho',
-    note TEXT COMMENT 'Ghi chú phiếu xuất',
+    reason ENUM('Sale', 'Return', 'Damaged', 'Expired', 'Other') NOT NULL DEFAULT 'Other' COMMENT 'Lý do xuất kho (mặc định: Other)',
+    note VARCHAR(500) NOT NULL COMMENT 'Lý do xuất kho (bắt buộc, tối đa 500 ký tự)',
     status ENUM('Pending', 'Completed', 'Cancelled') DEFAULT 'Pending' COMMENT 'Trạng thái phiếu xuất',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -361,9 +361,9 @@ BEFORE INSERT ON warehouse_import
 FOR EACH ROW
 BEGIN
     -- Kiểm tra định dạng mã phiếu nhập
-    IF NEW.import_code NOT REGEXP '^PN[0-9]{8}[0-9]{3}$' THEN 
+    IF NEW.import_code NOT REGEXP '^PN[0-9]{7}$' THEN 
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Mã phiếu nhập không hợp lệ. Định dạng phải là PNYYYYMMDDXXX';
+        SET MESSAGE_TEXT = 'Mã phiếu nhập không hợp lệ. Định dạng phải là PN + 7 số (ví dụ: PN1234567)';
     END IF;
     
     -- Kiểm tra số lượng nhập
@@ -376,6 +376,17 @@ BEGIN
     IF NEW.import_date > CURDATE() THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Ngày nhập không được vượt quá ngày hiện tại';
+    END IF;
+    
+    -- Kiểm tra ghi chú không được rỗng và không quá 500 ký tự
+    IF NEW.note IS NULL OR TRIM(NEW.note) = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ghi chú không được để trống';
+    END IF;
+    
+    IF CHAR_LENGTH(NEW.note) > 500 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ghi chú không được vượt quá 500 ký tự';
     END IF;
 END$$
 
@@ -385,9 +396,9 @@ BEFORE UPDATE ON warehouse_import
 FOR EACH ROW
 BEGIN
     -- Kiểm tra định dạng mã phiếu nhập
-    IF NEW.import_code NOT REGEXP '^PN[0-9]{8}[0-9]{3}$' THEN 
+    IF NEW.import_code NOT REGEXP '^PN[0-9]{7}$' THEN 
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Mã phiếu nhập không hợp lệ. Định dạng phải là PNYYYYMMDDXXX';
+        SET MESSAGE_TEXT = 'Mã phiếu nhập không hợp lệ. Định dạng phải là PN + 7 số (ví dụ: PN1234567)';
     END IF;
     
     -- Kiểm tra số lượng nhập
@@ -400,6 +411,17 @@ BEGIN
     IF NEW.import_date > CURDATE() THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Ngày nhập không được vượt quá ngày hiện tại';
+    END IF;
+    
+    -- Kiểm tra ghi chú không được rỗng và không quá 500 ký tự
+    IF NEW.note IS NULL OR TRIM(NEW.note) = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ghi chú không được để trống';
+    END IF;
+    
+    IF CHAR_LENGTH(NEW.note) > 500 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ghi chú không được vượt quá 500 ký tự';
     END IF;
 END$$
 
@@ -423,7 +445,7 @@ BEGIN
         SELECT 
             NEW.import_code, 'Import', NEW.product_id, NEW.quantity,
             stock_quantity - NEW.quantity, stock_quantity,
-            NEW.import_by, CONCAT('Nhập kho: ', COALESCE(NEW.note, ''))
+            NEW.import_by, CONCAT('Nhập kho: ', NEW.note)
         FROM products 
         WHERE product_id = NEW.product_id;
     END IF;
@@ -435,9 +457,9 @@ BEFORE INSERT ON warehouse_export
 FOR EACH ROW
 BEGIN
     -- Kiểm tra định dạng mã phiếu xuất
-    IF NEW.export_code NOT REGEXP '^PX[0-9]{8}[0-9]{3}$' THEN 
+    IF NEW.export_code NOT REGEXP '^PX[0-9]{7}$' THEN 
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Mã phiếu xuất không hợp lệ. Định dạng phải là PXYYYYMMDDXXX';
+        SET MESSAGE_TEXT = 'Mã phiếu xuất không hợp lệ. Định dạng phải là PX + 7 số (ví dụ: PX1234567)';
     END IF;
     
     -- Kiểm tra số lượng xuất
@@ -450,6 +472,17 @@ BEGIN
     IF NEW.export_date > CURDATE() THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Ngày xuất không được vượt quá ngày hiện tại';
+    END IF;
+    
+    -- Kiểm tra lý do xuất (note) không được rỗng và không quá 500 ký tự
+    IF NEW.note IS NULL OR TRIM(NEW.note) = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Lý do xuất không được để trống';
+    END IF;
+    
+    IF CHAR_LENGTH(NEW.note) > 500 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Lý do xuất không được vượt quá 500 ký tự';
     END IF;
 END$$
 
@@ -459,9 +492,9 @@ BEFORE UPDATE ON warehouse_export
 FOR EACH ROW
 BEGIN
     -- Kiểm tra định dạng mã phiếu xuất
-    IF NEW.export_code NOT REGEXP '^PX[0-9]{8}[0-9]{3}$' THEN 
+    IF NEW.export_code NOT REGEXP '^PX[0-9]{7}$' THEN 
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Mã phiếu xuất không hợp lệ. Định dạng phải là PXYYYYMMDDXXX';
+        SET MESSAGE_TEXT = 'Mã phiếu xuất không hợp lệ. Định dạng phải là PX + 7 số (ví dụ: PX1234567)';
     END IF;
     
     -- Kiểm tra số lượng xuất
@@ -474,6 +507,17 @@ BEGIN
     IF NEW.export_date > CURDATE() THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Ngày xuất không được vượt quá ngày hiện tại';
+    END IF;
+    
+    -- Kiểm tra lý do xuất (note) không được rỗng và không quá 500 ký tự
+    IF NEW.note IS NULL OR TRIM(NEW.note) = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Lý do xuất không được để trống';
+    END IF;
+    
+    IF CHAR_LENGTH(NEW.note) > 500 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Lý do xuất không được vượt quá 500 ký tự';
     END IF;
 END$$
 
@@ -498,7 +542,7 @@ BEGIN
         SELECT 
             NEW.export_code, 'Export', NEW.product_id, NEW.quantity,
             stock_quantity + NEW.quantity, stock_quantity,
-            NEW.export_by, CONCAT('Xuất kho: ', NEW.reason, ' - ', COALESCE(NEW.note, ''))
+            NEW.export_by, CONCAT('Xuất kho: ', NEW.note)
         FROM products 
         WHERE product_id = NEW.product_id;
     END IF;
@@ -561,13 +605,13 @@ ORDER BY created_at DESC;
 
 -- Thêm phiếu nhập mẫu
 INSERT INTO warehouse_import (import_code, product_id, quantity, import_date, import_by, note, status) VALUES
-('PN20240101001', 1, 50, '2024-01-01', 'admin', 'Nhập hàng đầu năm', 'Completed'),
-('PN20240115002', 2, 30, '2024-01-15', 'admin', 'Bổ sung tồn kho', 'Completed');
+('PN0000001', 1, 50, '2024-01-01', 'admin', 'Nhập hàng đầu năm', 'Completed'),
+('PN0000002', 2, 30, '2024-01-15', 'admin', 'Bổ sung tồn kho', 'Completed');
 
 -- Thêm phiếu xuất mẫu
 INSERT INTO warehouse_export (export_code, product_id, quantity, export_date, export_by, reason, note, status) VALUES
-('PX20240105001', 1, 10, '2024-01-05', 'admin', 'Sale', 'Xuất bán hàng', 'Completed'),
-('PX20240120002', 2, 5, '2024-01-20', 'admin', 'Return', 'Hàng lỗi', 'Completed');
+('PX0000001', 1, 10, '2024-01-05', 'admin', 'Sale', 'Xuất bán hàng', 'Completed'),
+('PX0000002', 2, 5, '2024-01-20', 'admin', 'Return', 'Hàng lỗi', 'Completed');
 
 -- =====================================================
 -- KẾT THÚC SCRIPT
@@ -694,10 +738,11 @@ BEGIN
     DECLARE export_code VARCHAR(20);
     
     IF NEW.status = 'Hoàn tất' AND OLD.status != 'Hoàn tất' THEN
-        -- Tạo mã phiếu xuất
-        SET export_code = CONCAT('PX', DATE_FORMAT(NOW(), '%Y%m%d'),
-            LPAD((SELECT COUNT(*) + 1 FROM warehouse_export 
-                  WHERE DATE(created_at) = CURDATE()), 3, '0'));
+        -- Tạo mã phiếu xuất (định dạng PX + 7 số)
+        SET export_code = CONCAT('PX', 
+            LPAD((SELECT COALESCE(MAX(CAST(SUBSTRING(export_code, 3) AS UNSIGNED)), 0) + 1 
+                  FROM warehouse_export 
+                  WHERE export_code REGEXP '^PX[0-9]{7}$'), 7, '0'));
         
         -- Tạo phiếu xuất cho từng sản phẩm trong đơn
         INSERT INTO warehouse_export (
@@ -848,19 +893,19 @@ INSERT INTO categories (category_code, category_name, description, status) VALUE
 
 -- 5 phiếu nhập kho
 INSERT INTO warehouse_import (import_code, product_id, quantity, import_date, import_by, note, status) VALUES
-('PN20240301001', 1, 25, '2024-03-01', 'tester', 'Nhập bổ sung kem dưỡng ẩm', 'Completed'),
-('PN20240302002', 2, 15, '2024-03-02', 'tester', 'Nhập son môi MAC mới', 'Completed'),
-('PN20240303003', 3, 50, '2024-03-03', 'tester', 'Nhập dầu gội Tresemme', 'Completed'),
-('PN20240304004', 4, 8, '2024-03-04', 'tester', 'Nhập nước hoa Chanel', 'Completed'),
-('PN20240305005', 5, 100, '2024-03-05', 'tester', 'Nhập sữa tắm Dove', 'Completed');
+('PN0000003', 1, 25, '2024-03-01', 'tester', 'Nhập bổ sung kem dưỡng ẩm', 'Completed'),
+('PN0000004', 2, 15, '2024-03-02', 'tester', 'Nhập son môi MAC mới', 'Completed'),
+('PN0000005', 3, 50, '2024-03-03', 'tester', 'Nhập dầu gội Tresemme', 'Completed'),
+('PN0000006', 4, 8, '2024-03-04', 'tester', 'Nhập nước hoa Chanel', 'Completed'),
+('PN0000007', 5, 100, '2024-03-05', 'tester', 'Nhập sữa tắm Dove', 'Completed');
 
 -- 5 phiếu xuất kho
 INSERT INTO warehouse_export (export_code, product_id, quantity, export_date, export_by, reason, note, status) VALUES
-('PX20240310001', 1, 5, '2024-03-10', 'tester', 'Sale', 'Xuất bán lẻ', 'Completed'),
-('PX20240311002', 2, 3, '2024-03-11', 'tester', 'Sale', 'Xuất cho khách VIP', 'Completed'),
-('PX20240312003', 3, 20, '2024-03-12', 'tester', 'Sale', 'Xuất bán sỉ', 'Completed'),
-('PX20240313004', 4, 2, '2024-03-13', 'tester', 'Return', 'Hàng lỗi cần trả', 'Completed'),
-('PX20240314005', 5, 30, '2024-03-14', 'tester', 'Sale', 'Xuất cho đại lý', 'Completed');
+('PX0000003', 1, 5, '2024-03-10', 'tester', 'Sale', 'Xuất bán lẻ', 'Completed'),
+('PX0000004', 2, 3, '2024-03-11', 'tester', 'Sale', 'Xuất cho khách VIP', 'Completed'),
+('PX0000005', 3, 20, '2024-03-12', 'tester', 'Sale', 'Xuất bán sỉ', 'Completed'),
+('PX0000006', 4, 2, '2024-03-13', 'tester', 'Return', 'Hàng lỗi cần trả', 'Completed'),
+('PX0000007', 5, 30, '2024-03-14', 'tester', 'Sale', 'Xuất cho đại lý', 'Completed');
 
 -- =====================================================
 -- BỔ SUNG DỮ LIỆU CHO WAREHOUSE_HISTORY
@@ -868,19 +913,19 @@ INSERT INTO warehouse_export (export_code, product_id, quantity, export_date, ex
 
 -- Lịch sử cho 5 phiếu nhập kho
 INSERT INTO warehouse_history (reference_code, action_type, product_id, quantity, old_stock, new_stock, action_by, note) VALUES
-('PN20240301001', 'Import', 1, 25, 50, 75, 'tester', 'Nhập bổ sung kem dưỡng ẩm'),
-('PN20240302002', 'Import', 2, 15, 30, 45, 'tester', 'Nhập son môi MAC mới'),
-('PN20240303003', 'Import', 3, 50, 100, 150, 'tester', 'Nhập dầu gội Tresemme'),
-('PN20240304004', 'Import', 4, 8, 15, 23, 'tester', 'Nhập nước hoa Chanel'),
-('PN20240305005', 'Import', 5, 100, 200, 300, 'tester', 'Nhập sữa tắm Dove');
+('PN0000003', 'Import', 1, 25, 50, 75, 'tester', 'Nhập bổ sung kem dưỡng ẩm'),
+('PN0000004', 'Import', 2, 15, 30, 45, 'tester', 'Nhập son môi MAC mới'),
+('PN0000005', 'Import', 3, 50, 100, 150, 'tester', 'Nhập dầu gội Tresemme'),
+('PN0000006', 'Import', 4, 8, 15, 23, 'tester', 'Nhập nước hoa Chanel'),
+('PN0000007', 'Import', 5, 100, 200, 300, 'tester', 'Nhập sữa tắm Dove');
 
 -- Lịch sử cho 5 phiếu xuất kho
 INSERT INTO warehouse_history (reference_code, action_type, product_id, quantity, old_stock, new_stock, action_by, note) VALUES
-('PX20240310001', 'Export', 1, 5, 75, 70, 'tester', 'Xuất bán lẻ'),
-('PX20240311002', 'Export', 2, 3, 45, 42, 'tester', 'Xuất cho khách VIP'),
-('PX20240312003', 'Export', 3, 20, 150, 130, 'tester', 'Xuất bán sỉ'),
-('PX20240313004', 'Export', 4, 2, 23, 21, 'tester', 'Hàng lỗi cần trả'),
-('PX20240314005', 'Export', 5, 30, 300, 270, 'tester', 'Xuất cho đại lý');
+('PX0000003', 'Export', 1, 5, 75, 70, 'tester', 'Xuất bán lẻ'),
+('PX0000004', 'Export', 2, 3, 45, 42, 'tester', 'Xuất cho khách VIP'),
+('PX0000005', 'Export', 3, 20, 150, 130, 'tester', 'Xuất bán sỉ'),
+('PX0000006', 'Export', 4, 2, 23, 21, 'tester', 'Hàng lỗi cần trả'),
+('PX0000007', 'Export', 5, 30, 300, 270, 'tester', 'Xuất cho đại lý');
 
 -- =====================================================
 -- 3. BỔ SUNG 8 KHÁCH HÀNG MẪU

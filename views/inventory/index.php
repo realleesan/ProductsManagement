@@ -149,7 +149,17 @@ require_once __DIR__ . '/../layouts/header.php';
                         </td>
                         <td class="text-end"><?php echo number_format($transaction['new_stock'] ?? 0); ?></td>
                         <td><?php echo htmlspecialchars($transaction['action_by'] ?? ''); ?></td>
-                        <td><?php echo date('d/m/Y H:i', strtotime($transaction['action_at'] ?? 'now')); ?></td>
+                        <td>
+                            <?php 
+                            // Hiển thị ngày nhập/xuất thực tế nếu có, nếu không thì dùng action_at
+                            $display_date = $transaction['transaction_date'] ?? $transaction['action_at'] ?? 'now';
+                            if ($display_date && $display_date !== 'now') {
+                                echo date('d/m/Y', strtotime($display_date));
+                            } else {
+                                echo date('d/m/Y H:i', strtotime($transaction['action_at'] ?? 'now'));
+                            }
+                            ?>
+                        </td>
                         <td class="text-center">
                             <div class="action-buttons">
                                 <a href="?controller=InventoryController&action=view&id=<?php echo $transaction['history_id'] ?? ''; ?>" class="btn btn-sm btn-info" title="Xem chi tiết">

@@ -63,9 +63,6 @@ class InventoryController {
             return $product['status'] != 'Disabled';
         });
         
-        // Tạo mã phiếu nhập tự động
-        $import_code = 'PN' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
-        
         require_once __DIR__ . '/../views/inventory/import.php';
     }
     
@@ -80,13 +77,31 @@ class InventoryController {
         
         try {
             // Lấy dữ liệu từ form
+            $import_code = isset($_POST['import_code']) ? strtoupper(trim($_POST['import_code'])) : '';
             $product_id = (int)$_POST['product_id'];
             $quantity = (int)$_POST['quantity'];
             $unit_price = isset($_POST['unit_price']) ? (float)$_POST['unit_price'] : 0;
             $total_amount = isset($_POST['total_amount']) ? (float)$_POST['total_amount'] : 0;
-            $import_date = date('Y-m-d', strtotime($_POST['import_date']));
+            $import_date_str = isset($_POST['import_date']) ? trim($_POST['import_date']) : '';
             $import_by = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : 'admin_demo';
             $note = sanitizeInput($_POST['note']);
+            
+            // Validate và chuyển đổi ngày nhập
+            $import_date = null;
+            if (!empty($import_date_str)) {
+                // Kiểm tra định dạng YYYY/MM/DD hoặc YYYY/MM/DD HH:MM
+                if (preg_match('/^(\d{4})\/(\d{2})\/(\d{2})(\s+(\d{2}):(\d{2}))?$/', $import_date_str, $matches)) {
+                    $year = (int)$matches[1];
+                    $month = (int)$matches[2];
+                    $day = (int)$matches[3];
+                    $hour = isset($matches[5]) ? (int)$matches[5] : 0;
+                    $minute = isset($matches[6]) ? (int)$matches[6] : 0;
+                    
+                    if (checkdate($month, $day, $year) && $hour >= 0 && $hour <= 23 && $minute >= 0 && $minute <= 59) {
+                        $import_date = sprintf('%04d-%02d-%02d', $year, $month, $day);
+                    }
+                }
+            }
             
             // Lấy thông tin cập nhật cho sản phẩm hết hạn
             $new_manufacture_date = isset($_POST['new_manufacture_date']) ? $_POST['new_manufacture_date'] : null;
@@ -94,6 +109,29 @@ class InventoryController {
             
             // Validate dữ liệu
             $errors = [];
+            
+            // Validate ghi chú
+            if (empty(trim($note))) {
+                $errors[] = 'Vui lòng nhập ghi chú';
+            } elseif (mb_strlen($note) > 500) {
+                $errors[] = 'Ghi chú không được vượt quá 500 ký tự';
+            }
+            
+            // Validate mã phiếu nhập
+            if (empty($import_code)) {
+                $errors[] = 'Vui lòng nhập mã phiếu nhập';
+            } elseif (!preg_match('/^PN[0-9]{7}$/', $import_code)) {
+                $errors[] = 'Mã phiếu nhập không hợp lệ. Định dạng phải là PN + 7 số (ví dụ: PN1234567)';
+            } else {
+                // Kiểm tra mã trùng lặp
+                $check_code_query = "SELECT COUNT(*) FROM warehouse_import WHERE import_code = :import_code";
+                $check_code_stmt = $this->db->prepare($check_code_query);
+                $check_code_stmt->bindValue(":import_code", $import_code);
+                $check_code_stmt->execute();
+                if ($check_code_stmt->fetchColumn() > 0) {
+                    $errors[] = 'Mã phiếu nhập đã tồn tại. Vui lòng nhập mã khác';
+                }
+            }
             
             if ($quantity <= 0) {
                 $errors[] = 'Số lượng nhập phải lớn hơn 0';
@@ -110,8 +148,28 @@ class InventoryController {
                 $total_amount = $calculated_total; // Sử dụng giá trị tính toán từ server
             }
             
-            if (strtotime($import_date) > time()) {
-                $errors[] = 'Ngày nhập không được vượt quá ngày hiện tại';
+            // Validate ngày nhập
+            if (empty($import_date_str)) {
+                $errors[] = 'Vui lòng nhập ngày nhập';
+            } elseif (!$import_date) {
+                $errors[] = 'Định dạng ngày nhập không hợp lệ. Vui lòng nhập theo định dạng YYYY/MM/DD (ví dụ: 2024/01/15)';
+            } else {
+                // So sánh chỉ ngày, không so sánh giờ
+                $input_date_timestamp = strtotime($import_date);
+                $today_timestamp = strtotime(date('Y-m-d'));
+                
+                if ($input_date_timestamp > $today_timestamp) {
+                    $errors[] = 'Ngày nhập không được vượt quá ngày hiện tại';
+                } elseif ($input_date_timestamp < $today_timestamp) {
+                    $errors[] = 'Ngày nhập không được là ngày quá khứ';
+                }
+            }
+            
+            // Validate ghi chú
+            if (empty(trim($note))) {
+                $errors[] = 'Vui lòng nhập ghi chú';
+            } elseif (mb_strlen($note) > 500) {
+                $errors[] = 'Ghi chú không được vượt quá 500 ký tự';
             }
             
             // Kiểm tra sản phẩm tồn tại
@@ -159,8 +217,6 @@ class InventoryController {
                 $query = "INSERT INTO warehouse_import 
                          (import_code, product_id, quantity, unit_price, total_amount, import_date, import_by, note, status) 
                          VALUES (:import_code, :product_id, :quantity, :unit_price, :total_amount, :import_date, :import_by, :note, :status)";
-                
-                $import_code = 'PN' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                 
                 error_log("DEBUG: Import query: " . $query);
                 error_log("DEBUG: Import params: " . print_r([
@@ -319,9 +375,6 @@ class InventoryController {
             return $product['stock_quantity'] > 0 && $product['status'] != 'Disabled';
         });
         
-        // Tạo mã phiếu xuất tự động
-        $export_code = 'PX' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
-        
         require_once __DIR__ . '/../views/inventory/export.php';
     }
     
@@ -336,17 +389,75 @@ class InventoryController {
         
         try {
             // Lấy dữ liệu từ form
+            $export_code = isset($_POST['export_code']) ? strtoupper(trim($_POST['export_code'])) : '';
             $product_id = (int)$_POST['product_id'];
             $quantity = (int)$_POST['quantity'];
             $unit_price = isset($_POST['unit_price']) ? (float)$_POST['unit_price'] : 0;
             $total_amount = isset($_POST['total_amount']) ? (float)$_POST['total_amount'] : 0;
-            $export_date = date('Y-m-d', strtotime($_POST['export_date']));
+            $export_date_str = isset($_POST['export_date']) ? trim($_POST['export_date']) : '';
             $export_by = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : 'admin_demo';
-            $reason = sanitizeInput($_POST['reason']);
-            $note = sanitizeInput($_POST['note']);
+            $note = sanitizeInput($_POST['note']); // Lý do xuất được nhập vào trường note
+            $reason = 'Other'; // Set mặc định là 'Other' vì database yêu cầu reason là ENUM
+            
+            // Validate và chuyển đổi ngày xuất
+            $export_date = null;
+            if (!empty($export_date_str)) {
+                // Kiểm tra định dạng YYYY/MM/DD hoặc YYYY/MM/DD HH:MM
+                if (preg_match('/^(\d{4})\/(\d{2})\/(\d{2})(\s+(\d{2}):(\d{2}))?$/', $export_date_str, $matches)) {
+                    $year = (int)$matches[1];
+                    $month = (int)$matches[2];
+                    $day = (int)$matches[3];
+                    $hour = isset($matches[5]) ? (int)$matches[5] : 0;
+                    $minute = isset($matches[6]) ? (int)$matches[6] : 0;
+                    
+                    if (checkdate($month, $day, $year) && $hour >= 0 && $hour <= 23 && $minute >= 0 && $minute <= 59) {
+                        $export_date = sprintf('%04d-%02d-%02d', $year, $month, $day);
+                    }
+                }
+            }
             
             // Validate dữ liệu
             $errors = [];
+            
+            // Validate ngày xuất
+            if (empty($export_date_str)) {
+                $errors[] = 'Vui lòng nhập ngày xuất';
+            } elseif (!$export_date) {
+                $errors[] = 'Định dạng ngày xuất không hợp lệ. Vui lòng nhập theo định dạng YYYY/MM/DD (ví dụ: 2024/01/15)';
+            } else {
+                // So sánh chỉ ngày, không so sánh giờ
+                $input_date_timestamp = strtotime($export_date);
+                $today_timestamp = strtotime(date('Y-m-d'));
+                
+                if ($input_date_timestamp > $today_timestamp) {
+                    $errors[] = 'Ngày xuất không được vượt quá ngày hiện tại';
+                } elseif ($input_date_timestamp < $today_timestamp) {
+                    $errors[] = 'Ngày xuất không được là ngày quá khứ';
+                }
+            }
+            
+            // Validate lý do xuất (note)
+            if (empty(trim($note))) {
+                $errors[] = 'Vui lòng nhập lý do xuất kho';
+            } elseif (mb_strlen($note) > 500) {
+                $errors[] = 'Lý do xuất không được vượt quá 500 ký tự';
+            }
+            
+            // Validate mã phiếu xuất
+            if (empty($export_code)) {
+                $errors[] = 'Vui lòng nhập mã phiếu xuất';
+            } elseif (!preg_match('/^PX[0-9]{7}$/', $export_code)) {
+                $errors[] = 'Mã phiếu xuất không hợp lệ. Định dạng phải là PX + 7 số (ví dụ: PX1234567)';
+            } else {
+                // Kiểm tra mã trùng lặp
+                $check_code_query = "SELECT COUNT(*) FROM warehouse_export WHERE export_code = :export_code";
+                $check_code_stmt = $this->db->prepare($check_code_query);
+                $check_code_stmt->bindValue(":export_code", $export_code);
+                $check_code_stmt->execute();
+                if ($check_code_stmt->fetchColumn() > 0) {
+                    $errors[] = 'Mã phiếu xuất đã tồn tại. Vui lòng nhập mã khác';
+                }
+            }
             
             if ($quantity <= 0) {
                 $errors[] = 'Số lượng xuất phải lớn hơn 0';
@@ -363,10 +474,6 @@ class InventoryController {
                 $total_amount = $calculated_total; // Sử dụng giá trị tính toán từ server
             }
             
-            if (strtotime($export_date) > time()) {
-                $errors[] = 'Ngày xuất không được vượt quá ngày hiện tại';
-            }
-            
             // Kiểm tra sản phẩm tồn tại và còn hàng
             $product = $this->product->getById($product_id);
             if (!$product) {
@@ -376,10 +483,6 @@ class InventoryController {
                 if ($current_stock < $quantity) {
                     $errors[] = 'Số lượng xuất vượt quá tồn kho hiện có';
                 }
-            }
-            
-            if (empty($reason)) {
-                $errors[] = 'Vui lòng chọn lý do xuất kho';
             }
             
             if (!empty($errors)) {
@@ -398,8 +501,6 @@ class InventoryController {
                          (export_code, product_id, quantity, unit_price, total_amount, export_date, export_by, reason, note, status) 
                          VALUES (:export_code, :product_id, :quantity, :unit_price, :total_amount, :export_date, :export_by, :reason, :note, :status)";
                 
-                $export_code = 'PX' . date('Ymd') . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
-                
                 $stmt = $this->db->prepare($query);
                 $stmt->bindValue(":export_code", $export_code);
                 $stmt->bindValue(":product_id", $product_id);
@@ -409,7 +510,7 @@ class InventoryController {
                 $stmt->bindValue(":export_date", $export_date);
                 $stmt->bindValue(":export_by", $export_by);
                 $stmt->bindValue(":reason", $reason);
-                $stmt->bindValue(":note", $note);
+                $stmt->bindValue(":note", $note); // Lưu lý do xuất vào note
                 $stmt->bindValue(":status", 'Completed');
                 $stmt->execute();
                 
@@ -436,7 +537,7 @@ class InventoryController {
                 $stmt->bindValue(":old_stock", $old_stock);
                 $stmt->bindValue(":new_stock", $new_stock);
                 $stmt->bindValue(":action_by", $export_by);
-                $stmt->bindValue(":note", "$reason. $note");
+                $stmt->bindValue(":note", $note); // Lưu lý do xuất vào note
                 $stmt->execute();
                 
                 // Commit transaction
@@ -464,9 +565,12 @@ class InventoryController {
     public function view($id, $type = 'history') {
         // Nếu type là history, lấy từ bảng warehouse_history
         if ($type === 'history') {
-            $query = "SELECT h.*, p.product_name, p.product_code 
+            $query = "SELECT h.*, p.product_name, p.product_code,
+                             COALESCE(wi.import_date, we.export_date) as transaction_date
                      FROM warehouse_history h
                      LEFT JOIN products p ON h.product_id = p.product_id 
+                     LEFT JOIN warehouse_import wi ON h.reference_code = wi.import_code AND h.action_type = 'Import'
+                     LEFT JOIN warehouse_export we ON h.reference_code = we.export_code AND h.action_type = 'Export'
                      WHERE h.history_id = :id";
             
             $stmt = $this->db->prepare($query);
@@ -495,8 +599,10 @@ class InventoryController {
             // Xử lý import/export như cũ
             $table = $type === 'import' ? 'warehouse_import' : 'warehouse_export';
             $id_field = $type === 'import' ? 'import_id' : 'export_id';
+            $date_field = $type === 'import' ? 'import_date' : 'export_date';
             
-            $query = "SELECT t.*, p.product_name, p.product_code 
+            $query = "SELECT t.*, p.product_name, p.product_code,
+                             t.$date_field as transaction_date
                      FROM $table t
                      JOIN products p ON t.product_id = p.product_id 
                      WHERE t.$id_field = :id";

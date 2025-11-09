@@ -20,7 +20,14 @@ switch ($controller) {
     case 'InventoryController':
         require_once __DIR__ . '/controllers/InventoryController.php';
         $inventoryController = new InventoryController();
-        $inventoryController->$action();
+        // Xử lý đặc biệt cho action view cần tham số id và type
+        if ($action === 'view' && isset($_GET['id'])) {
+            $id = (int)$_GET['id'];
+            $type = isset($_GET['type']) ? $_GET['type'] : 'history';
+            $inventoryController->view($id, $type);
+        } else {
+            $inventoryController->$action();
+        }
         break;
         
     case 'OrderController':
